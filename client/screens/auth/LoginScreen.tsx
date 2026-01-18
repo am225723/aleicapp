@@ -20,7 +20,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { login } = useAuth();
+  const { signIn } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,21 +38,14 @@ export default function LoginScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      const role = email.includes("therapist") ? "therapist" : "couple";
-      await login(
-        {
-          id: "user-" + Date.now(),
-          email,
-          displayName: email.split("@")[0],
-          role,
-          partnerId: role === "couple" ? "partner-123" : undefined,
-          partnerName: role === "couple" ? "Partner" : undefined,
-        },
-        "mock-token-" + Date.now()
-      );
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const { error: authError } = await signIn(email, password);
+      
+      if (authError) {
+        setError(authError.message || "Login failed. Please try again.");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
     } catch {
       setError("Login failed. Please try again.");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

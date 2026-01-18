@@ -21,7 +21,7 @@ export default function AddJournalScreen() {
   const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -50,12 +50,12 @@ export default function AddJournalScreen() {
 
     try {
       await addJournalEntry({
-        coupleId: "couple-1",
+        coupleId: profile?.couple_id || "couple-1",
         title: title.trim(),
         content: content.trim(),
         imageUri: imageUri || undefined,
-        authorId: user?.id || "user-1",
-        authorName: user?.displayName || "You",
+        authorId: profile?.id || "user-1",
+        authorName: profile?.full_name || "You",
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

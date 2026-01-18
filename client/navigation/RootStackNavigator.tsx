@@ -35,7 +35,7 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootStackNavigator() {
-  const { user, isLoading } = useAuth();
+  const { session, profile, isLoading } = useAuth();
   const screenOptions = useScreenOptions();
   const { theme } = useTheme();
 
@@ -49,13 +49,13 @@ export default function RootStackNavigator() {
 
   return (
     <Stack.Navigator screenOptions={screenOptions}>
-      {!user ? (
+      {!session || !profile ? (
         <Stack.Screen
           name="Auth"
           component={AuthStackNavigator}
           options={{ headerShown: false }}
         />
-      ) : user.role === "therapist" ? (
+      ) : profile.role === "therapist" ? (
         <>
           <Stack.Screen
             name="TherapistTabs"

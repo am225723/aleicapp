@@ -14,12 +14,14 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function TherapistProfileScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { user, logout } = useAuth();
+  const { profile, signOut } = useAuth();
 
   const handleLogout = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await logout();
+    await signOut();
   };
+
+  const displayName = profile?.full_name || profile?.email?.split("@")[0] || "Therapist";
 
   return (
     <ScrollView
@@ -44,12 +46,12 @@ export default function TherapistProfileScreen() {
           ]}
         >
           <ThemedText type="h1" style={{ color: Colors.light.link }}>
-            {user?.displayName?.charAt(0) || "T"}
+            {displayName.charAt(0).toUpperCase()}
           </ThemedText>
         </View>
 
         <ThemedText type="h3" style={styles.name}>
-          {user?.displayName || "Therapist"}
+          {displayName}
         </ThemedText>
         <View
           style={[
@@ -69,7 +71,7 @@ export default function TherapistProfileScreen() {
           type="body"
           style={[styles.email, { color: theme.textSecondary }]}
         >
-          {user?.email}
+          {profile?.email}
         </ThemedText>
       </Card>
 

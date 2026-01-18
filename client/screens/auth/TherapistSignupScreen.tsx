@@ -16,7 +16,7 @@ export default function TherapistSignupScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
-  const { login } = useAuth();
+  const { signUp } = useAuth();
 
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -30,23 +30,27 @@ export default function TherapistSignupScreen() {
       return;
     }
 
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const { error: authError } = await signUp(email, password, {
+        full_name: displayName,
+        role: "therapist",
+      });
 
-      await login(
-        {
-          id: "therapist-" + Date.now(),
-          email,
-          displayName,
-          role: "therapist",
-        },
-        "mock-token-" + Date.now()
-      );
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (authError) {
+        setError(authError.message || "Signup failed. Please try again.");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
     } catch {
       setError("Signup failed. Please try again.");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

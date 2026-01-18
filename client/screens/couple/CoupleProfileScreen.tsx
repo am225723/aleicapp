@@ -14,12 +14,14 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function CoupleProfileScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { user, logout } = useAuth();
+  const { profile, signOut } = useAuth();
 
   const handleLogout = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await logout();
+    await signOut();
   };
+
+  const displayName = profile?.full_name || profile?.email?.split("@")[0] || "User";
 
   return (
     <ScrollView
@@ -45,10 +47,10 @@ export default function CoupleProfileScreen() {
             ]}
           >
             <ThemedText type="h2" style={{ color: Colors.light.link }}>
-              {user?.displayName?.charAt(0) || "?"}
+              {displayName.charAt(0).toUpperCase()}
             </ThemedText>
           </View>
-          {user?.partnerName ? (
+          {profile?.couple_id ? (
             <>
               <View style={styles.heartIcon}>
                 <Feather name="heart" size={20} color={Colors.light.accent} />
@@ -60,7 +62,7 @@ export default function CoupleProfileScreen() {
                 ]}
               >
                 <ThemedText type="h2" style={{ color: Colors.light.accent }}>
-                  {user.partnerName.charAt(0)}
+                  P
                 </ThemedText>
               </View>
             </>
@@ -68,11 +70,11 @@ export default function CoupleProfileScreen() {
         </View>
 
         <ThemedText type="h3" style={styles.name}>
-          {user?.displayName || "User"}
-          {user?.partnerName ? ` & ${user.partnerName}` : ""}
+          {displayName}
+          {profile?.couple_id ? " & Partner" : ""}
         </ThemedText>
         <ThemedText type="body" style={{ color: theme.textSecondary }}>
-          {user?.email}
+          {profile?.email}
         </ThemedText>
       </Card>
 

@@ -21,7 +21,7 @@ export default function WeeklyCheckinScreen() {
   const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   const [connectionRating, setConnectionRating] = useState(5);
   const [communicationRating, setCommunicationRating] = useState(5);
@@ -35,9 +35,9 @@ export default function WeeklyCheckinScreen() {
 
     try {
       await addWeeklyCheckin({
-        coupleId: "couple-1",
-        authorId: user?.id || "user-1",
-        authorName: user?.displayName || "You",
+        coupleId: profile?.couple_id || "couple-1",
+        authorId: profile?.id || "user-1",
+        authorName: profile?.full_name || "You",
         connectionRating,
         communicationRating,
         intimacyRating,

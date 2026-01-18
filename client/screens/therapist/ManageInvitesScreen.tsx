@@ -24,7 +24,7 @@ import { getInvites, addInvite, Invite } from "@/lib/storage";
 export default function ManageInvitesScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   const [invites, setInvites] = useState<Invite[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -35,7 +35,7 @@ export default function ManageInvitesScreen() {
   }, []);
 
   async function loadInvites() {
-    const data = await getInvites(user?.id);
+    const data = await getInvites(profile?.id);
     setInvites(data);
   }
 
@@ -55,7 +55,7 @@ export default function ManageInvitesScreen() {
       expiresAt.setDate(expiresAt.getDate() + 7);
 
       await addInvite({
-        therapistId: user?.id || "therapist-1",
+        therapistId: profile?.id || "therapist-1",
         expiresAt: expiresAt.toISOString(),
       });
 

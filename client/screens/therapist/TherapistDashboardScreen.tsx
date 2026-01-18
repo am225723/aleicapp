@@ -15,7 +15,7 @@ import { getCouples, getToolEntries, CoupleData, ToolEntry } from "@/lib/storage
 export default function TherapistDashboardScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   const [couples, setCouples] = useState<CoupleData[]>([]);
   const [recentActivity, setRecentActivity] = useState<ToolEntry[]>([]);
@@ -47,6 +47,8 @@ export default function TherapistDashboardScreen() {
     return new Date(entry.createdAt) >= weekAgo;
   });
 
+  const displayName = profile?.full_name || profile?.email?.split("@")[0] || "Therapist";
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
@@ -63,7 +65,7 @@ export default function TherapistDashboardScreen() {
     >
       <View style={styles.header}>
         <ThemedText type="h2">
-          Welcome, {user?.displayName || "Therapist"}
+          Welcome, {displayName}
         </ThemedText>
         <ThemedText
           type="body"

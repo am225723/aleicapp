@@ -21,7 +21,7 @@ export default function CoupleHomeScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   const [recentActivity, setRecentActivity] = useState<ToolEntry[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -47,6 +47,8 @@ export default function CoupleHomeScreen() {
     navigation.navigate(tool as keyof RootStackParamList);
   };
 
+  const displayName = profile?.full_name || profile?.email?.split("@")[0] || "there";
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
@@ -63,15 +65,15 @@ export default function CoupleHomeScreen() {
     >
       <View style={styles.header}>
         <ThemedText type="h2">
-          Welcome back, {user?.displayName || "there"}
+          Welcome back, {displayName}
         </ThemedText>
-        {user?.partnerName ? (
+        {profile?.couple_id ? (
           <ThemedText
             type="body"
             style={[styles.partnerText, { color: theme.textSecondary }]}
           >
             <Feather name="heart" size={14} color={Colors.light.accent} />{" "}
-            Connected with {user.partnerName}
+            Connected with your partner
           </ThemedText>
         ) : null}
       </View>

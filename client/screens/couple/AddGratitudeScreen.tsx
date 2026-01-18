@@ -21,7 +21,7 @@ export default function AddGratitudeScreen() {
   const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   const [content, setContent] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -49,11 +49,11 @@ export default function AddGratitudeScreen() {
 
     try {
       await addGratitudeEntry({
-        coupleId: "couple-1",
+        coupleId: profile?.couple_id || "couple-1",
         content: content.trim(),
         imageUri: imageUri || undefined,
-        authorId: user?.id || "user-1",
-        authorName: user?.displayName || "You",
+        authorId: profile?.id || "user-1",
+        authorName: profile?.full_name || "You",
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
