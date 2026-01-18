@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
