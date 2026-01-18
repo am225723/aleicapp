@@ -13,9 +13,13 @@ import PauseButtonScreen from "@/screens/tools/PauseButtonScreen";
 import EchoEmpathyScreen from "@/screens/tools/EchoEmpathyScreen";
 import HoldMeTightScreen from "@/screens/tools/HoldMeTightScreen";
 import WeeklyCheckinScreen from "@/screens/tools/WeeklyCheckinScreen";
+import FourHorsemenScreen from "@/screens/tools/FourHorsemenScreen";
 import AddGratitudeScreen from "@/screens/couple/AddGratitudeScreen";
 import AddJournalScreen from "@/screens/couple/AddJournalScreen";
 import AddRitualScreen from "@/screens/couple/AddRitualScreen";
+import MessagesScreen from "@/screens/couple/MessagesScreen";
+import LoveLanguageQuizScreen from "@/screens/couple/LoveLanguageQuizScreen";
+import CalendarScreen from "@/screens/couple/CalendarScreen";
 import CoupleDetailScreen from "@/screens/therapist/CoupleDetailScreen";
 
 export type RootStackParamList = {
@@ -26,9 +30,13 @@ export type RootStackParamList = {
   EchoEmpathy: undefined;
   HoldMeTight: undefined;
   WeeklyCheckin: undefined;
+  FourHorsemen: undefined;
   AddGratitude: undefined;
   AddJournal: undefined;
   AddRitual: undefined;
+  Messages: undefined;
+  LoveLanguageQuiz: undefined;
+  Calendar: undefined;
   CoupleDetail: { coupleId: string };
 };
 
@@ -129,6 +137,35 @@ export default function RootStackNavigator() {
             options={{
               presentation: "modal",
               headerTitle: "Add Ritual",
+            }}
+          />
+          <Stack.Screen
+            name="FourHorsemen"
+            component={FourHorsemenScreen}
+            options={{
+              presentation: "modal",
+              headerTitle: "Four Horsemen",
+            }}
+          />
+          <Stack.Screen
+            name="Messages"
+            component={MessagesScreen}
+            options={{
+              headerTitle: "Messages",
+            }}
+          />
+          <Stack.Screen
+            name="LoveLanguageQuiz"
+            component={LoveLanguageQuizScreen}
+            options={{
+              headerTitle: "Love Languages",
+            }}
+          />
+          <Stack.Screen
+            name="Calendar"
+            component={CalendarScreen}
+            options={{
+              headerTitle: "Calendar",
             }}
           />
         </>

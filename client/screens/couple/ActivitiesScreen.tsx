@@ -109,6 +109,56 @@ export default function ActivitiesScreen() {
           onPress={() => navigation.navigate("AddJournal")}
         />
       </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h4" style={styles.sectionTitle}>
+          Assessments
+        </ThemedText>
+
+        <ToolCard
+          title="Love Language Quiz"
+          description="Discover how you give and receive love"
+          icon="heart"
+          color="#E74C3C"
+          onPress={() => navigation.navigate("LoveLanguageQuiz")}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h4" style={styles.sectionTitle}>
+          Therapeutic Tools
+        </ThemedText>
+
+        <ToolCard
+          title="Four Horsemen"
+          description="Track Gottman's predictors of relationship distress"
+          icon="alert-triangle"
+          color="#F39C12"
+          onPress={() => navigation.navigate("FourHorsemen")}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h4" style={styles.sectionTitle}>
+          Planning
+        </ThemedText>
+
+        <ToolCard
+          title="Shared Calendar"
+          description="Plan dates and special moments together"
+          icon="calendar"
+          color="#1ABC9C"
+          onPress={() => navigation.navigate("Calendar")}
+        />
+
+        <ToolCard
+          title="Messages"
+          description="Chat with your partner"
+          icon="message-circle"
+          color="#3498DB"
+          onPress={() => navigation.navigate("Messages")}
+        />
+      </View>
     </ScrollView>
   );
 }
