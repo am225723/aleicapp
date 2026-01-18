@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "Couples Therapy",
-    "slug": "couples-therapy",
+    "name": "A.L.E.I.C.",
+    "slug": "aleic",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "couplestherapy",
+    "scheme": "aleic",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.couplestherapy.app"
+      "bundleIdentifier": "com.aleic.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.couplestherapy.app"
+      "package": "com.aleic.app"
     },
     "web": {
       "output": "single",
