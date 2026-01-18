@@ -1,0 +1,65 @@
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[auth]
+enabled = true
+site_url = "http://localhost:5000"
+additional_redirect_urls = ["https://couples.integrativepsychiatry.xyz"]
+jwt_expiry = 3600
+enable_signup = true
+
+[edge_runtime]
+enabled = true
+
+[functions.ai-date-night]
+verify_jwt = true
+
+[functions.ai-insights]
+verify_jwt = true
+
+[functions.ai-exercise-recommendations]
+verify_jwt = true
+
+[functions.ai-empathy-prompt]
+verify_jwt = true
+
+[functions.ai-echo-coaching]
+verify_jwt = true
+
+[functions.ai-voice-memo-sentiment]
+verify_jwt = true
+
+[functions.ai-session-prep]
+verify_jwt = true
+
+[functions.schedule-notification]
+verify_jwt = true
+
+[functions.send-scheduled-notifications]
+verify_jwt = true
+
+[functions.therapist-analytics]
+verify_jwt = true
+
+[functions.therapist-messages]
+verify_jwt = true
+
+[functions.therapist-thoughts]
+verify_jwt = true
+
+[functions.therapist-voice-memos]
+verify_jwt = true
