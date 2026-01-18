@@ -1,30 +1,43 @@
 import { Platform } from "react-native";
 
-const tintColorLight = "#007AFF";
-const tintColorDark = "#0A84FF";
-
 export const Colors = {
   light: {
-    text: "#11181C",
+    text: "#2D3748",
+    textSecondary: "#718096",
     buttonText: "#FFFFFF",
-    tabIconDefault: "#687076",
-    tabIconSelected: tintColorLight,
-    link: "#007AFF",
-    backgroundRoot: "#FFFFFF", // Elevation 0
-    backgroundDefault: "#F2F2F2", // Elevation 1
-    backgroundSecondary: "#E6E6E6", // Elevation 2
-    backgroundTertiary: "#D9D9D9", // Elevation 3
+    tabIconDefault: "#718096",
+    tabIconSelected: "#8B9DC3",
+    link: "#8B9DC3",
+    accent: "#E8A59C",
+    success: "#81C995",
+    warning: "#F6C177",
+    error: "#E88B8B",
+    backgroundRoot: "#F9F7F4",
+    backgroundDefault: "#FFFFFF",
+    backgroundSecondary: "#F2F0ED",
+    backgroundTertiary: "#E8E6E3",
+    border: "#E2E0DD",
+    inputBackground: "#FFFFFF",
+    cardShadow: "rgba(0, 0, 0, 0.08)",
   },
   dark: {
     text: "#ECEDEE",
+    textSecondary: "#9BA1A6",
     buttonText: "#FFFFFF",
     tabIconDefault: "#9BA1A6",
-    tabIconSelected: tintColorDark,
-    link: "#0A84FF",
-    backgroundRoot: "#1F2123", // Elevation 0
-    backgroundDefault: "#2A2C2E", // Elevation 1
-    backgroundSecondary: "#353739", // Elevation 2
-    backgroundTertiary: "#404244", // Elevation 3
+    tabIconSelected: "#A8B5D1",
+    link: "#A8B5D1",
+    accent: "#E8A59C",
+    success: "#81C995",
+    warning: "#F6C177",
+    error: "#E88B8B",
+    backgroundRoot: "#1F2123",
+    backgroundDefault: "#2A2C2E",
+    backgroundSecondary: "#353739",
+    backgroundTertiary: "#404244",
+    border: "#404244",
+    inputBackground: "#2A2C2E",
+    cardShadow: "rgba(0, 0, 0, 0.3)",
   },
 };
 
@@ -55,51 +68,54 @@ export const BorderRadius = {
 
 export const Typography = {
   h1: {
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: "700" as const,
-  },
-  h2: {
     fontSize: 28,
     lineHeight: 36,
     fontWeight: "700" as const,
+    fontFamily: "Nunito_700Bold",
   },
-  h3: {
+  h2: {
     fontSize: 24,
     lineHeight: 32,
-    fontWeight: "600" as const,
+    fontWeight: "700" as const,
+    fontFamily: "Nunito_700Bold",
   },
-  h4: {
+  h3: {
     fontSize: 20,
     lineHeight: 28,
     fontWeight: "600" as const,
+    fontFamily: "Nunito_600SemiBold",
+  },
+  h4: {
+    fontSize: 18,
+    lineHeight: 26,
+    fontWeight: "600" as const,
+    fontFamily: "Nunito_600SemiBold",
   },
   body: {
     fontSize: 16,
     lineHeight: 24,
     fontWeight: "400" as const,
+    fontFamily: "Nunito_400Regular",
   },
   small: {
     fontSize: 14,
     lineHeight: 20,
     fontWeight: "400" as const,
+    fontFamily: "Nunito_400Regular",
   },
   link: {
     fontSize: 16,
     lineHeight: 24,
     fontWeight: "400" as const,
+    fontFamily: "Nunito_400Regular",
   },
 };
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: "system-ui",
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: "ui-serif",
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: "ui-rounded",
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: "ui-monospace",
   },
   default: {
