@@ -1,0 +1,107 @@
+You are building a NATIVE mobile app using Expo React Native (NOT a web wrapper).
+
+Repo context:
+- This repo is “Mobile App Couples Therapy.”
+- It contains web/client + server, and it also contains an Expo mobile app folder at /mobile (this is the primary mobile deliverable).
+- There may be another Expo folder named /A.L.E.I.X, ignore it unless /mobile is missing. Use /mobile as the app.
+- The backend is Node/Express in /server and data/auth/storage is via Supabase.
+
+Goal:
+Make the Couples Therapy app fully functional as a native mobile app with two roles:
+1) Couple (client) role = daily-use relationship tools
+2) Therapist role = dashboard for managing couples + session prep
+
+Hard requirements:
+- Use Expo + React Native for mobile.
+- Implement role-based routing immediately after login:
+  - therapist -> therapist navigation tree
+  - couple -> couple navigation tree
+- Use secure token/session storage using expo-secure-store (NOT AsyncStorage for auth).
+- Use React Navigation with:
+  - AuthStack (login/signup)
+  - RoleGate (decides which app tree)
+  - CoupleTabs (5 tabs) and TherapistTabs (4 tabs)
+- Use React Query for API calls and caching (already in dependencies).
+- Hook up Supabase auth + storage for:
+  - login/signup
+  - invitation codes / linking partners
+  - uploading images and audio
+- Hook up /server API routes for tool data and AI endpoints.
+- Ensure all requests include auth (Supabase session token).
+
+Navigation structure (must implement):
+1) AuthStack
+   - LoginScreen
+   - CoupleSignupScreen (includes “invitation code” input)
+   - TherapistSignupScreen
+2) RoleGateScreen
+   - reads user role from Supabase profile/roles table
+3) CoupleTabs (Bottom Tabs)
+   - Home
+   - Connect
+   - Activities
+   - Plan
+   - Profile
+4) TherapistTabs (Bottom Tabs)
+   - Dashboard
+   - Couples
+   - Manage (invites)
+   - Profile
+
+Core Couple features (phone-first):
+- “Pause Button” tool: calming flow with a timer + steps + haptics
+- “Echo & Empathy” tool: guided turn-taking conversation (speaker/listener cards)
+- “Hold Me Tight” tool: step-by-step guided prompts
+- Weekly check-in: quick slider/rating inputs + notes
+- Gratitude: quick add entry; allow image attachment
+- Journal: entries with optional image attachment
+- Date night generator: suggestions list + save
+- Rituals: list + reminders
+
+Core Therapist features:
+- Couples list + couple detail screen
+- Invite code generation and management
+- Session prep summary view (AI-generated from the last 4 weeks of couple activity)
+- Read-only “tool usage + trends” (avoid exposing raw private text unless explicitly intended)
+
+Native modules (must implement and wire into UI):
+- Push notifications via expo-notifications:
+  - weekly check-in reminder
+  - ritual reminders
+- Audio recording via expo-av:
+  - allow voice memo recording for journal entries
+  - upload to Supabase Storage and playback in-app
+- Image picking via expo-image-picker:
+  - attach image to gratitude/journal entry
+  - upload to Supabase Storage
+- Haptics via expo-haptics for the Pause Button / step transitions
+
+Data model expectations (implement minimal tables if missing):
+- profiles: id, role ('couple'|'therapist'), display_name
+- couples: id, partner1_id, partner2_id, therapist_id (nullable), created_at
+- invites: code, couple_id or therapist_id, expires_at, used_by
+- tool_entries: id, couple_id, tool_type, payload_json, created_at
+- media: id, couple_id, type ('image'|'audio'), storage_path, created_at
+
+API expectations:
+- For tool saves/reads: call server endpoints (or Supabase directly if already designed).
+- For AI: call server AI endpoints with structured data only.
+- Enforce privacy: do not send partner names to AI; use Partner 1 / Partner 2.
+
+Implementation steps:
+1) Inspect /mobile and use it as the app root.
+2) Confirm Expo runs locally (npx expo start).
+3) Implement AuthStack + RoleGate + navigation trees.
+4) Implement Supabase auth + secure session storage.
+5) Implement core screens with basic UI that is clearly native and one-thumb friendly.
+6) Implement tool_entries persistence and basic list/history views.
+7) Add notifications, audio recording/upload/playback, and image picking/upload.
+8) Add therapist features (couple list, invites, session prep summary).
+9) Ensure app builds without TypeScript errors and with clean navigation.
+
+Deliverables:
+- A working Expo React Native app in /mobile that runs on iOS/Android simulator.
+- Clear separation of Couple vs Therapist experience.
+- All major tool flows accessible from the Couple tab navigation.
+- Minimal but complete UI: no placeholder “TODO” screens for the listed core features.
+- Commit changes in logical commits and produce a short summary of what was implemented.
