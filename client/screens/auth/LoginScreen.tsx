@@ -291,8 +291,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logoImage: {
-    width: 180,
-    height: 80,
+    width: 280,
+    height: 120,
   },
   subtitleContainer: {
     alignItems: "center",
