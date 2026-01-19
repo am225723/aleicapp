@@ -27,11 +27,15 @@ A native mobile app built with Expo React Native for couples therapy, featuring 
 ### Couple Experience (5 tabs)
 1. **Home**: Quick access to tools, recent activity feed
 2. **Connect**: Gratitude entries and journal entries with image attachments
-3. **Activities**: 
-   - Pause Button (guided breathing with haptics)
-   - Echo & Empathy (speaker/listener turn-taking)
-   - Hold Me Tight (EFT-based conversation prompts)
-   - Weekly Check-in (rating sliders)
+3. **Activities**: Comprehensive relationship tools including:
+   - **Calming & Grounding**: Pause Button (guided breathing), Meditation Library
+   - **Communication**: Echo & Empathy, Hold Me Tight (EFT), Voice Memos, Demon Dialogues
+   - **Assessments**: Love Language Quiz, Attachment Styles, Enneagram, Love Map Quiz (Gottman)
+   - **Deep Work**: Internal Family Systems (IFS), Intimacy Mapping, Values & Vision
+   - **Reflection**: Weekly Check-in, Gratitude, Journal
+   - **Therapeutic Tools**: Four Horsemen (Gottman)
+   - **Life Together**: Shared Goals, Parenting Partners, Financial Toolkit
+   - **Planning**: Shared Calendar, Messages
 4. **Plan**: Date night suggestions and customizable rituals
 5. **Profile**: Account settings and stats
 
@@ -40,6 +44,7 @@ A native mobile app built with Expo React Native for couples therapy, featuring 
 2. **Couples**: List of managed couples with detail views
 3. **Invites**: Generate and share invitation codes
 4. **Profile**: Account settings
+5. **Messages**: Real-time messaging with couples (via CoupleDetail)
 
 ## File Structure
 ```
@@ -86,7 +91,40 @@ client/
 2. **Frontend**: `npm run expo:dev` (port 8081)
 3. **Test**: Scan QR code with Expo Go or open web at localhost:8081
 
+## Supabase Database Tables
+The app uses Supabase for data persistence with the following module tables:
+- `voice_memos` - Audio recordings with Supabase Storage
+- `shared_goals` - Couple goal tracking (Kanban-style)
+- `demon_dialogues` - EFT negative cycle patterns
+- `attachment_results` - Attachment style assessments
+- `enneagram_results` - Enneagram type results
+- `ifs_sessions` - Internal Family Systems parts work
+- `intimacy_maps` - Intimacy preference mapping
+- `love_map_results` - Gottman Love Map quiz results
+- `meditation_sessions` - Meditation practice logs
+- `parenting_discussions` - Parenting alignment discussions
+- `financial_conversations` - Financial conversation logs
+- `values_vision` - Shared values and vision entries
+- `therapist_messages` - Therapist-couple messaging
+
+All tables have RLS policies for proper data isolation.
+
 ## Recent Changes
+- January 2026: Major feature expansion
+  - Added 14 new relationship tools with Supabase persistence
+  - Voice Memos with audio recording, Storage upload, and playback
+  - Shared Goals with Kanban-style tracking
+  - Demon Dialogues for EFT negative cycle identification
+  - Attachment Style assessment and results
+  - Enneagram personality assessment
+  - Internal Family Systems (IFS) parts work
+  - Intimacy Mapping across 5 dimensions
+  - Love Map Quiz (Gottman method)
+  - Meditation Library with session tracking
+  - Parenting Partners alignment tool
+  - Financial Toolkit for money conversations
+  - Values & Vision sharing
+  - Therapist Messages with realtime subscriptions
 - January 2026: Initial implementation of Couples Therapy app
   - Role-based authentication and navigation
   - Complete couple experience with 5 tabs and tool flows
