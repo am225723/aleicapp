@@ -4,7 +4,6 @@ import {
   View,
   TextInput,
   Pressable,
-  ImageBackground,
   Text,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -12,21 +11,29 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import MaskedView from "@react-native-masked-view/masked-view";
 import * as Haptics from "expo-haptics";
 
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthStackParamList } from "@/navigation/AuthStackNavigator";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
-const GOLD_PRIMARY = "#C9A962";
-const GOLD_LIGHT = "#E5D4A1";
-const GOLD_DARK = "#8B7635";
-const DARK_BG = "#1A1A1C";
-const GLASS_BG = "rgba(60, 60, 65, 0.65)";
-const GLASS_BORDER = "rgba(200, 180, 120, 0.3)";
+const COLORS = {
+  backgroundDark: "#1A1A24",
+  backgroundLight: "#242430",
+  goldPrimary: "#D4AF37",
+  goldGradientLight: "#FDD663",
+  goldGradientDark: "#C5991A",
+  glowColor: "rgba(255, 191, 0, 0.4)",
+  inputBg: "rgba(255, 255, 255, 0.05)",
+  inputBorder: "#555555",
+  textPrimary: "#F0F0F0",
+  textPlaceholder: "#888888",
+  glassBorder: "rgba(255, 255, 255, 0.1)",
+};
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -65,35 +72,84 @@ export default function LoginScreen() {
     }
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: DARK_BG }]}>
-      <LinearGradient
-        colors={["rgba(201, 169, 98, 0.15)", "transparent", "rgba(201, 169, 98, 0.1)"]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0.3, y: 0 }}
-        end={{ x: 0.7, y: 1 }}
-      />
+  const renderSubtitle = () => {
+    const words = [
+      { large: "A", rest: "SSISTED" },
+      { large: "L", rest: "EARNING" },
+      { large: "", rest: "FOR" },
+      { large: "E", rest: "MPATHETIC" },
+    ];
+    const words2 = [
+      { large: "", rest: "AND" },
+      { large: "I", rest: "NSIGHTFUL" },
+      { large: "C", rest: "OUPLES" },
+    ];
 
+    return (
+      <View style={styles.subtitleContainer}>
+        <Text style={styles.subtitleLine}>
+          {words.map((word, idx) => (
+            <Text key={idx}>
+              {word.large ? (
+                <Text style={styles.largeLetter}>{word.large}</Text>
+              ) : null}
+              <Text style={styles.subtitleText}>{word.rest} </Text>
+            </Text>
+          ))}
+        </Text>
+        <Text style={styles.subtitleLine}>
+          {words2.map((word, idx) => (
+            <Text key={idx}>
+              {word.large ? (
+                <Text style={styles.largeLetter}>{word.large}</Text>
+              ) : null}
+              <Text style={styles.subtitleText}>{word.rest} </Text>
+            </Text>
+          ))}
+        </Text>
+      </View>
+    );
+  };
+
+  return (
+    <LinearGradient
+      colors={[COLORS.backgroundDark, COLORS.backgroundLight, COLORS.backgroundDark]}
+      style={styles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
       <KeyboardAwareScrollViewCompat
         style={{ flex: 1 }}
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: insets.top + Spacing["3xl"],
+            paddingTop: insets.top + Spacing["2xl"],
             paddingBottom: insets.bottom + Spacing["2xl"],
           },
         ]}
       >
         <View style={styles.glassCard}>
-          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.cardOverlay} />
+
           <View style={styles.cardContent}>
-            <Text style={styles.logoText}>Aleic</Text>
+            <MaskedView
+              style={styles.logoMask}
+              maskElement={
+                <Text style={styles.logoText}>Aleic</Text>
+              }
+            >
+              <LinearGradient
+                colors={[COLORS.goldGradientLight, COLORS.goldGradientDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.logoGradient}
+              />
+            </MaskedView>
 
-            <Text style={styles.tagline}>
-              ASSISTED LEARNING FOR EMPATHETIC{"\n"}AND INSIGHTFUL COUPLES
-            </Text>
+            {renderSubtitle()}
 
-            <View style={styles.form}>
+            <View style={styles.formContainer}>
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
                 <TextInput
@@ -101,12 +157,12 @@ export default function LoginScreen() {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="path@connection.com"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={COLORS.textPlaceholder}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoComplete="email"
                 />
-                <View style={styles.inputUnderline} />
+                <View style={styles.inputBorder} />
               </View>
 
               <View style={styles.inputGroup}>
@@ -116,11 +172,11 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   placeholder="********"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={COLORS.textPlaceholder}
                   secureTextEntry
                   autoComplete="password"
                 />
-                <View style={styles.inputUnderline} />
+                <View style={styles.inputBorder} />
               </View>
 
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -128,12 +184,12 @@ export default function LoginScreen() {
               <Pressable
                 style={({ pressed }) => [
                   styles.signInButton,
-                  pressed && styles.signInButtonPressed,
+                  pressed && styles.buttonPressed,
                 ]}
                 onPress={handleLogin}
                 disabled={isLoading}
               >
-                <Text style={styles.signInText}>
+                <Text style={styles.signInButtonText}>
                   {isLoading ? "SIGNING IN..." : "SIGN IN"}
                 </Text>
               </Pressable>
@@ -148,7 +204,7 @@ export default function LoginScreen() {
             <Pressable
               style={({ pressed }) => [
                 styles.joinButton,
-                pressed && styles.joinButtonPressed,
+                pressed && styles.buttonPressed,
               ]}
               onPress={() => navigation.navigate("CoupleSignup")}
             >
@@ -159,12 +215,12 @@ export default function LoginScreen() {
               style={styles.recoverButton}
               onPress={() => navigation.navigate("TherapistSignup")}
             >
-              <Text style={styles.recoverText}>JOIN AS THERAPIST</Text>
+              <Text style={styles.recoverText}>RECOVER ACCOUNT ACCESS?</Text>
             </Pressable>
           </View>
         </View>
       </KeyboardAwareScrollViewCompat>
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -174,84 +230,105 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     justifyContent: "center",
   },
   glassCard: {
-    borderRadius: BorderRadius.lg,
+    borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: GLASS_BORDER,
+    borderColor: COLORS.glassBorder,
+  },
+  cardOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.inputBg,
   },
   cardContent: {
     padding: Spacing["2xl"],
-    backgroundColor: GLASS_BG,
+    paddingTop: Spacing["3xl"],
+    paddingBottom: Spacing["3xl"],
+  },
+  logoMask: {
+    height: 70,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.md,
   },
   logoText: {
-    fontFamily: "Nunito_700Bold",
-    fontSize: 52,
-    color: GOLD_PRIMARY,
+    fontFamily: "GreatVibes_400Regular",
+    fontSize: 64,
     textAlign: "center",
-    marginBottom: Spacing.md,
-    textShadowColor: "rgba(201, 169, 98, 0.5)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 10,
   },
-  tagline: {
-    fontFamily: "Nunito_600SemiBold",
-    fontSize: 13,
-    color: GOLD_LIGHT,
-    textAlign: "center",
-    letterSpacing: 1.5,
+  logoGradient: {
+    flex: 1,
+    width: "100%",
+  },
+  subtitleContainer: {
+    alignItems: "center",
     marginBottom: Spacing["3xl"],
-    lineHeight: 20,
   },
-  form: {
-    marginBottom: Spacing.xl,
+  subtitleLine: {
+    flexDirection: "row",
+    textAlign: "center",
+  },
+  subtitleText: {
+    fontFamily: "Montserrat_500Medium",
+    fontSize: 11,
+    color: COLORS.goldPrimary,
+    letterSpacing: 1.5,
+  },
+  largeLetter: {
+    fontFamily: "Montserrat_600SemiBold",
+    fontSize: 14,
+    color: COLORS.goldPrimary,
+  },
+  formContainer: {
+    marginBottom: Spacing.lg,
   },
   inputGroup: {
     marginBottom: Spacing.xl,
   },
   inputLabel: {
-    fontFamily: "Nunito_600SemiBold",
-    fontSize: 11,
-    color: GOLD_LIGHT,
+    fontFamily: "Montserrat_500Medium",
+    fontSize: 10,
+    color: COLORS.goldPrimary,
     letterSpacing: 2,
     marginBottom: Spacing.sm,
   },
   input: {
-    fontFamily: "Nunito_400Regular",
+    fontFamily: "Montserrat_400Regular",
     fontSize: 16,
-    color: "#FFFFFF",
+    color: COLORS.textPrimary,
     paddingVertical: Spacing.sm,
+    backgroundColor: "transparent",
   },
-  inputUnderline: {
+  inputBorder: {
     height: 1,
-    backgroundColor: GOLD_DARK,
-    marginTop: Spacing.xs,
+    backgroundColor: COLORS.inputBorder,
+    marginTop: 2,
   },
   errorText: {
-    fontFamily: "Nunito_400Regular",
-    fontSize: 14,
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 13,
     color: "#E88B8B",
     textAlign: "center",
     marginBottom: Spacing.md,
   },
   signInButton: {
-    borderWidth: 1.5,
-    borderColor: GOLD_PRIMARY,
-    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: COLORS.goldPrimary,
+    borderRadius: 50,
     paddingVertical: Spacing.lg,
     alignItems: "center",
     marginTop: Spacing.lg,
   },
-  signInButtonPressed: {
-    backgroundColor: "rgba(201, 169, 98, 0.15)",
+  buttonPressed: {
+    backgroundColor: "rgba(212, 175, 55, 0.15)",
   },
-  signInText: {
-    fontFamily: "Nunito_700Bold",
-    fontSize: 14,
-    color: GOLD_LIGHT,
+  signInButtonText: {
+    fontFamily: "Montserrat_600SemiBold",
+    fontSize: 13,
+    color: COLORS.goldPrimary,
     letterSpacing: 3,
   },
   divider: {
@@ -262,30 +339,28 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: GOLD_DARK,
+    backgroundColor: COLORS.inputBorder,
   },
   dividerText: {
-    fontFamily: "Nunito_600SemiBold",
-    fontSize: 11,
-    color: GOLD_LIGHT,
+    fontFamily: "Montserrat_500Medium",
+    fontSize: 10,
+    color: COLORS.goldPrimary,
     letterSpacing: 2,
     marginHorizontal: Spacing.md,
   },
   joinButton: {
-    borderWidth: 1.5,
-    borderColor: GOLD_PRIMARY,
-    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: COLORS.goldPrimary,
+    borderRadius: 50,
     paddingVertical: Spacing.lg,
     alignItems: "center",
     marginBottom: Spacing.lg,
-  },
-  joinButtonPressed: {
-    backgroundColor: "rgba(201, 169, 98, 0.15)",
+    opacity: 0.8,
   },
   joinButtonText: {
-    fontFamily: "Nunito_700Bold",
-    fontSize: 14,
-    color: GOLD_LIGHT,
+    fontFamily: "Montserrat_600SemiBold",
+    fontSize: 13,
+    color: COLORS.goldPrimary,
     letterSpacing: 3,
   },
   recoverButton: {
@@ -293,9 +368,10 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   recoverText: {
-    fontFamily: "Nunito_600SemiBold",
-    fontSize: 12,
-    color: GOLD_PRIMARY,
+    fontFamily: "Montserrat_500Medium",
+    fontSize: 11,
+    color: COLORS.goldPrimary,
     letterSpacing: 1.5,
+    opacity: 0.7,
   },
 });
