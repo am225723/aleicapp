@@ -13,6 +13,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import MaskedView from "@react-native-masked-view/masked-view";
 import * as Haptics from "expo-haptics";
 
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
@@ -22,7 +24,6 @@ import { Spacing } from "@/constants/theme";
 
 const BG_IMAGE = require("../../assets/background-couple.jpg");
 const ART_IMAGE = require("../../assets/gold-line-art.png");
-const ALEIC_LOGO = require("../../assets/aleic-logo.png");
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
@@ -138,13 +139,17 @@ export default function LoginScreen() {
             <View style={styles.cardHighlight} />
 
             <View style={styles.cardContent}>
-              <View style={styles.logoContainer}>
-                <Image 
-                  source={ALEIC_LOGO} 
-                  style={styles.logoImage} 
-                  resizeMode="contain" 
+              <MaskedView
+                style={styles.logoMask}
+                maskElement={<Text style={styles.logoText}>Aleic</Text>}
+              >
+                <LinearGradient
+                  colors={[COLORS.goldGradientLight, COLORS.goldGradientDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.logoGradient}
                 />
-              </View>
+              </MaskedView>
 
               {renderSubtitle()}
 
