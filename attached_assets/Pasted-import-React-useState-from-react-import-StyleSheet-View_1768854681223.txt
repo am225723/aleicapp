@@ -5,7 +5,7 @@ import {
   TextInput,
   Pressable,
   Text,
-  Image,
+  Image, // Import Image component
   StatusBar,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,14 +15,24 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import * as Haptics from "expo-haptics";
+import {
+  useFonts,
+  GreatVibes_400Regular,
+} from "@expo-google-fonts/great-vibes";
+import {
+  Montserrat_400Regular,
+  Montserrat_500Medium,
+  Montserrat_600SemiBold,
+} from "@expo-google-fonts/montserrat";
 
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { Spacing } from "@/constants/theme";
 
-const LINE_ART_MASK = require("../../assets/line-art-mask.png");
-const ALEIC_LOGO = require("../../assets/aleiclogo.png");
+// Ensure these assets exist in your assets folder
+const LINE_ART_MASK = require("@/assets/line-art-mask.png");
+const ALEIC_LOGO = require("@/assets/aleiclogo.png"); // Your new logo image
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
@@ -44,36 +54,34 @@ export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { signIn } = useAuth();
 
+  const [fontsLoaded] = useFonts({
+    GreatVibes_400Regular,
+    Montserrat_400Regular,
+    Montserrat_500Medium,
+    Montserrat_600SemiBold,
+  });
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  if (!fontsLoaded) {
+    return null;
+  }
+
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError("Please fill in all fields");
-      return;
-    }
-
-    setIsLoading(true);
-    setError("");
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    try {
-      const { error: authError } = await signIn(email, password);
-
-      if (authError) {
-        setError(authError.message || "Login failed. Please try again.");
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    } catch {
-      setError("Login failed. Please try again.");
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsLoading(false);
-    }
+     if (!email || !password) {
+       setError("Please fill in all fields");
+       return;
+     }
+     setIsLoading(true);
+     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+     // Simulate login
+     setTimeout(() => {
+         setIsLoading(false);
+         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+     }, 1500);
   };
 
   const renderSubtitle = () => {
@@ -155,6 +163,7 @@ export default function LoginScreen() {
           <View style={styles.cardHighlight} />
 
           <View style={styles.cardContent}>
+            {/* Replaced MaskedView with Image component for the logo */}
             <View style={styles.logoContainer}>
               <Image
                 source={ALEIC_LOGO}
@@ -176,7 +185,6 @@ export default function LoginScreen() {
                   placeholderTextColor={COLORS.textPlaceholder}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  autoComplete="email"
                 />
                 <View style={styles.inputBorder} />
               </View>
@@ -190,7 +198,6 @@ export default function LoginScreen() {
                   placeholder="********"
                   placeholderTextColor={COLORS.textPlaceholder}
                   secureTextEntry
-                  autoComplete="password"
                 />
                 <View style={styles.inputBorder} />
               </View>
@@ -245,11 +252,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   backgroundArtContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    position: StyleSheet.absoluteFillObject,
     zIndex: 0,
     opacity: 0.7,
     transform: [{ scale: 1.1 }, { translateY: 50 }],
@@ -283,17 +286,25 @@ const styles = StyleSheet.create({
     padding: Spacing["2xl"],
     paddingTop: Spacing["3xl"],
     paddingBottom: Spacing["3xl"],
-    alignItems: "center",
+    alignItems: 'center', // Center content horizontally
   },
+  // New styles for the image logo
   logoContainer: {
     marginBottom: Spacing.sm,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoImage: {
-    width: 180,
-    height: 80,
+    width: 180, // Adjust width as needed
+    height: 80,  // Adjust height as needed
+    // Shadow styles for the logo
+    shadowColor: COLORS.goldPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+    elevation: 10, // Android shadow
   },
+  // Removed old logoMask, logoText, logoGradient styles
   subtitleContainer: {
     alignItems: "center",
     marginBottom: Spacing["3xl"],
@@ -301,8 +312,8 @@ const styles = StyleSheet.create({
   subtitleLine: {
     flexDirection: "row",
     textAlign: "center",
-    flexWrap: "wrap",
-    justifyContent: "center",
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   subtitleText: {
     fontFamily: "Montserrat_500Medium",
@@ -317,7 +328,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     marginBottom: Spacing.lg,
-    width: "100%",
+    width: '100%', // Ensure form takes full width
   },
   inputGroup: {
     marginBottom: Spacing.xl,
@@ -369,7 +380,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginVertical: Spacing.xl,
-    width: "100%",
+    width: '100%',
   },
   dividerLine: {
     flex: 1,
@@ -392,7 +403,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     marginBottom: Spacing.lg,
-    width: "100%",
+    width: '100%',
   },
   joinButtonText: {
     fontFamily: "Montserrat_600SemiBold",
