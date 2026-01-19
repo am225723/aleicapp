@@ -18,9 +18,9 @@ export default function ActivitiesScreen() {
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
 
-  const handleToolPress = (tool: string) => {
+  const handleToolPress = (tool: keyof RootStackParamList) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigation.navigate(tool as keyof RootStackParamList);
+    navigation.navigate(tool as any);
   };
 
   return (
@@ -56,6 +56,14 @@ export default function ActivitiesScreen() {
           color={Colors.light.link}
           onPress={() => handleToolPress("PauseButton")}
         />
+
+        <ToolCard
+          title="Meditation Library"
+          description="Guided mindfulness practices for couples"
+          icon="sun"
+          color="#9B59B6"
+          onPress={() => handleToolPress("MeditationLibrary")}
+        />
       </View>
 
       <View style={styles.section}>
@@ -78,6 +86,90 @@ export default function ActivitiesScreen() {
           color={Colors.light.success}
           onPress={() => handleToolPress("HoldMeTight")}
         />
+
+        <ToolCard
+          title="Voice Memos"
+          description="Record and share voice messages with your partner"
+          icon="mic"
+          color="#E74C3C"
+          onPress={() => handleToolPress("VoiceMemos")}
+        />
+
+        <ToolCard
+          title="Demon Dialogues"
+          description="Identify negative cycle patterns in conflict"
+          icon="repeat"
+          color="#F39C12"
+          onPress={() => handleToolPress("DemonDialogues")}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h4" style={styles.sectionTitle}>
+          Assessments
+        </ThemedText>
+
+        <ToolCard
+          title="Love Language Quiz"
+          description="Discover how you give and receive love"
+          icon="heart"
+          color="#E74C3C"
+          onPress={() => handleToolPress("LoveLanguageQuiz")}
+        />
+
+        <ToolCard
+          title="Attachment Styles"
+          description="Understand your attachment patterns"
+          icon="shield"
+          color="#3498DB"
+          onPress={() => handleToolPress("AttachmentStyle")}
+        />
+
+        <ToolCard
+          title="Enneagram"
+          description="Explore your personality type"
+          icon="target"
+          color="#9B59B6"
+          onPress={() => handleToolPress("Enneagram")}
+        />
+
+        <ToolCard
+          title="Love Map Quiz"
+          description="How well do you know your partner? (Gottman)"
+          icon="map"
+          color={Colors.light.success}
+          onPress={() => handleToolPress("LoveMapQuiz")}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h4" style={styles.sectionTitle}>
+          Deep Work
+        </ThemedText>
+
+        <ToolCard
+          title="Internal Family Systems"
+          description="Explore your internal parts for healing"
+          icon="users"
+          color="#1ABC9C"
+          onPress={() => handleToolPress("IFSIntro")}
+        />
+
+        <ToolCard
+          title="Intimacy Mapping"
+          description="Map your preferences across types of intimacy"
+          icon="layers"
+          color="#E74C3C"
+          onPress={() => handleToolPress("IntimacyMapping")}
+        />
+
+        <ToolCard
+          title="Values & Vision"
+          description="Align on what matters most to you both"
+          icon="compass"
+          color={Colors.light.link}
+          onPress={() => handleToolPress("ValuesVision")}
+        />
       </View>
 
       <View style={styles.section}>
@@ -98,7 +190,7 @@ export default function ActivitiesScreen() {
           description="Share what you appreciate about your partner"
           icon="gift"
           color="#9B59B6"
-          onPress={() => navigation.navigate("AddGratitude")}
+          onPress={() => handleToolPress("AddGratitude")}
         />
 
         <ToolCard
@@ -106,21 +198,7 @@ export default function ActivitiesScreen() {
           description="Record your thoughts and reflections"
           icon="book-open"
           color="#3498DB"
-          onPress={() => navigation.navigate("AddJournal")}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <ThemedText type="h4" style={styles.sectionTitle}>
-          Assessments
-        </ThemedText>
-
-        <ToolCard
-          title="Love Language Quiz"
-          description="Discover how you give and receive love"
-          icon="heart"
-          color="#E74C3C"
-          onPress={() => navigation.navigate("LoveLanguageQuiz")}
+          onPress={() => handleToolPress("AddJournal")}
         />
       </View>
 
@@ -134,7 +212,37 @@ export default function ActivitiesScreen() {
           description="Track Gottman's predictors of relationship distress"
           icon="alert-triangle"
           color="#F39C12"
-          onPress={() => navigation.navigate("FourHorsemen")}
+          onPress={() => handleToolPress("FourHorsemen")}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h4" style={styles.sectionTitle}>
+          Life Together
+        </ThemedText>
+
+        <ToolCard
+          title="Shared Goals"
+          description="Set and track goals together as a couple"
+          icon="target"
+          color={Colors.light.success}
+          onPress={() => handleToolPress("SharedGoals")}
+        />
+
+        <ToolCard
+          title="Parenting Partners"
+          description="Align on parenting decisions together"
+          icon="users"
+          color={Colors.light.accent}
+          onPress={() => handleToolPress("ParentingPartners")}
+        />
+
+        <ToolCard
+          title="Financial Toolkit"
+          description="Have productive money conversations"
+          icon="dollar-sign"
+          color="#27AE60"
+          onPress={() => handleToolPress("FinancialToolkit")}
         />
       </View>
 
@@ -148,7 +256,7 @@ export default function ActivitiesScreen() {
           description="Plan dates and special moments together"
           icon="calendar"
           color="#1ABC9C"
-          onPress={() => navigation.navigate("Calendar")}
+          onPress={() => handleToolPress("Calendar")}
         />
 
         <ToolCard
@@ -156,7 +264,7 @@ export default function ActivitiesScreen() {
           description="Chat with your partner"
           icon="message-circle"
           color="#3498DB"
-          onPress={() => navigation.navigate("Messages")}
+          onPress={() => handleToolPress("Messages")}
         />
       </View>
     </ScrollView>
