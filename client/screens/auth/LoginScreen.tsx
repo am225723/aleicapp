@@ -1,24 +1,35 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Image, Pressable } from "react-native";
+import {
+  StyleSheet,
+  View,
+  TextInput,
+  Pressable,
+  ImageBackground,
+  Text,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
-import { ThemedText } from "@/components/ThemedText";
-import { Button } from "@/components/Button";
-import { Input } from "@/components/Input";
-import { useTheme } from "@/hooks/useTheme";
-import { Spacing, Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthStackParamList } from "@/navigation/AuthStackNavigator";
+import { Spacing, BorderRadius } from "@/constants/theme";
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
+const GOLD_PRIMARY = "#C9A962";
+const GOLD_LIGHT = "#E5D4A1";
+const GOLD_DARK = "#8B7635";
+const DARK_BG = "#1A1A1C";
+const GLASS_BG = "rgba(60, 60, 65, 0.65)";
+const GLASS_BORDER = "rgba(200, 180, 120, 0.3)";
+
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { signIn } = useAuth();
 
@@ -39,7 +50,7 @@ export default function LoginScreen() {
 
     try {
       const { error: authError } = await signIn(email, password);
-      
+
       if (authError) {
         setError(authError.message || "Login failed. Please try again.");
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -55,140 +66,236 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAwareScrollViewCompat
-      style={{ flex: 1, backgroundColor: theme.backgroundRoot }}
-      contentContainerStyle={[
-        styles.container,
-        {
-          paddingTop: insets.top + Spacing["4xl"],
-          paddingBottom: insets.bottom + Spacing["2xl"],
-        },
-      ]}
-    >
-      <View style={styles.header}>
-        <Image
-          source={require("../../../assets/images/icon.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <ThemedText type="h1" style={styles.title}>
-          Couples Therapy
-        </ThemedText>
-        <ThemedText
-          type="body"
-          style={[styles.subtitle, { color: theme.textSecondary }]}
-        >
-          Strengthen your connection, together
-        </ThemedText>
-      </View>
+    <View style={[styles.container, { backgroundColor: DARK_BG }]}>
+      <LinearGradient
+        colors={["rgba(201, 169, 98, 0.15)", "transparent", "rgba(201, 169, 98, 0.1)"]}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0.3, y: 0 }}
+        end={{ x: 0.7, y: 1 }}
+      />
 
-      <View style={styles.form}>
-        <Input
-          label="Email"
-          placeholder="Enter your email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-        />
-        <Input
-          label="Password"
-          placeholder="Enter your password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoComplete="password"
-        />
+      <KeyboardAwareScrollViewCompat
+        style={{ flex: 1 }}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: insets.top + Spacing["3xl"],
+            paddingBottom: insets.bottom + Spacing["2xl"],
+          },
+        ]}
+      >
+        <View style={styles.glassCard}>
+          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.cardContent}>
+            <Text style={styles.logoText}>Aleic</Text>
 
-        {error ? (
-          <ThemedText
-            type="small"
-            style={[styles.error, { color: theme.error }]}
-          >
-            {error}
-          </ThemedText>
-        ) : null}
+            <Text style={styles.tagline}>
+              ASSISTED LEARNING FOR EMPATHETIC{"\n"}AND INSIGHTFUL COUPLES
+            </Text>
 
-        <Button onPress={handleLogin} disabled={isLoading}>
-          {isLoading ? "Signing in..." : "Sign In"}
-        </Button>
-      </View>
+            <View style={styles.form}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="path@connection.com"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                />
+                <View style={styles.inputUnderline} />
+              </View>
 
-      <View style={styles.footer}>
-        <ThemedText
-          type="body"
-          style={[styles.footerText, { color: theme.textSecondary }]}
-        >
-          Don't have an account?
-        </ThemedText>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>PASSWORD</Text>
+                <TextInput
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="********"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  secureTextEntry
+                  autoComplete="password"
+                />
+                <View style={styles.inputUnderline} />
+              </View>
 
-        <View style={styles.signupButtons}>
-          <Pressable
-            onPress={() => navigation.navigate("CoupleSignup")}
-            style={[styles.signupButton, { borderColor: Colors.light.link }]}
-          >
-            <ThemedText type="body" style={{ color: Colors.light.link }}>
-              Join as Couple
-            </ThemedText>
-          </Pressable>
+              {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <Pressable
-            onPress={() => navigation.navigate("TherapistSignup")}
-            style={[styles.signupButton, { borderColor: Colors.light.accent }]}
-          >
-            <ThemedText type="body" style={{ color: Colors.light.accent }}>
-              Join as Therapist
-            </ThemedText>
-          </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.signInButton,
+                  pressed && styles.signInButtonPressed,
+                ]}
+                onPress={handleLogin}
+                disabled={isLoading}
+              >
+                <Text style={styles.signInText}>
+                  {isLoading ? "SIGNING IN..." : "SIGN IN"}
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>BEGIN YOUR JOURNEY</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.joinButton,
+                pressed && styles.joinButtonPressed,
+              ]}
+              onPress={() => navigation.navigate("CoupleSignup")}
+            >
+              <Text style={styles.joinButtonText}>JOIN AS COUPLE</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.recoverButton}
+              onPress={() => navigation.navigate("TherapistSignup")}
+            >
+              <Text style={styles.recoverText}>JOIN AS THERAPIST</Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
-    </KeyboardAwareScrollViewCompat>
+      </KeyboardAwareScrollViewCompat>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  scrollContent: {
     flexGrow: 1,
     paddingHorizontal: Spacing.xl,
+    justifyContent: "center",
   },
-  header: {
-    alignItems: "center",
-    marginBottom: Spacing["4xl"],
+  glassCard: {
+    borderRadius: BorderRadius.lg,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: GLASS_BORDER,
   },
-  logo: {
-    width: 100,
-    height: 100,
-    marginBottom: Spacing.xl,
+  cardContent: {
+    padding: Spacing["2xl"],
+    backgroundColor: GLASS_BG,
   },
-  title: {
+  logoText: {
+    fontFamily: "Nunito_700Bold",
+    fontSize: 52,
+    color: GOLD_PRIMARY,
     textAlign: "center",
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
+    textShadowColor: "rgba(201, 169, 98, 0.5)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 10,
   },
-  subtitle: {
+  tagline: {
+    fontFamily: "Nunito_600SemiBold",
+    fontSize: 13,
+    color: GOLD_LIGHT,
     textAlign: "center",
+    letterSpacing: 1.5,
+    marginBottom: Spacing["3xl"],
+    lineHeight: 20,
   },
   form: {
-    marginBottom: Spacing["3xl"],
+    marginBottom: Spacing.xl,
   },
-  error: {
+  inputGroup: {
+    marginBottom: Spacing.xl,
+  },
+  inputLabel: {
+    fontFamily: "Nunito_600SemiBold",
+    fontSize: 11,
+    color: GOLD_LIGHT,
+    letterSpacing: 2,
+    marginBottom: Spacing.sm,
+  },
+  input: {
+    fontFamily: "Nunito_400Regular",
+    fontSize: 16,
+    color: "#FFFFFF",
+    paddingVertical: Spacing.sm,
+  },
+  inputUnderline: {
+    height: 1,
+    backgroundColor: GOLD_DARK,
+    marginTop: Spacing.xs,
+  },
+  errorText: {
+    fontFamily: "Nunito_400Regular",
+    fontSize: 14,
+    color: "#E88B8B",
     textAlign: "center",
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
-  footer: {
-    alignItems: "center",
-  },
-  footerText: {
-    marginBottom: Spacing.lg,
-  },
-  signupButtons: {
-    flexDirection: "row",
-    gap: Spacing.md,
-  },
-  signupButton: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: 24,
+  signInButton: {
     borderWidth: 1.5,
+    borderColor: GOLD_PRIMARY,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.lg,
+    alignItems: "center",
+    marginTop: Spacing.lg,
+  },
+  signInButtonPressed: {
+    backgroundColor: "rgba(201, 169, 98, 0.15)",
+  },
+  signInText: {
+    fontFamily: "Nunito_700Bold",
+    fontSize: 14,
+    color: GOLD_LIGHT,
+    letterSpacing: 3,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: Spacing.xl,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: GOLD_DARK,
+  },
+  dividerText: {
+    fontFamily: "Nunito_600SemiBold",
+    fontSize: 11,
+    color: GOLD_LIGHT,
+    letterSpacing: 2,
+    marginHorizontal: Spacing.md,
+  },
+  joinButton: {
+    borderWidth: 1.5,
+    borderColor: GOLD_PRIMARY,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.lg,
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+  },
+  joinButtonPressed: {
+    backgroundColor: "rgba(201, 169, 98, 0.15)",
+  },
+  joinButtonText: {
+    fontFamily: "Nunito_700Bold",
+    fontSize: 14,
+    color: GOLD_LIGHT,
+    letterSpacing: 3,
+  },
+  recoverButton: {
+    alignItems: "center",
+    paddingVertical: Spacing.md,
+  },
+  recoverText: {
+    fontFamily: "Nunito_600SemiBold",
+    fontSize: 12,
+    color: GOLD_PRIMARY,
+    letterSpacing: 1.5,
   },
 });

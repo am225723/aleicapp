@@ -67,11 +67,16 @@ client/
 ## Design System
 - **Primary Color**: #8B9DC3 (Soft blue-gray)
 - **Accent Color**: #E8A59C (Warm peach)
+- **Login Theme**: Dark/Gold aesthetic with frosted glass
+  - Gold Primary: #C9A962
+  - Gold Light: #E5D4A1
+  - Dark Background: #1A1A1C
 - **Font**: Nunito (Google Fonts)
 - **Icons**: Feather icons from @expo/vector-icons
 
 ## User Preferences
-- Modern calming aesthetic with soft colors
+- Login page: Elegant dark theme with gold accents and frosted glass card
+- Modern calming aesthetic with soft colors (app screens)
 - Haptic feedback on key interactions
 - Image attachments for gratitude/journal entries
 - Role-based navigation (couple vs therapist)
