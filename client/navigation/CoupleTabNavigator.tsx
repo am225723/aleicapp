@@ -9,6 +9,7 @@ import CalmScreen from "@/screens/couple/CalmScreen";
 import ConnectToolsScreen from "@/screens/couple/ConnectToolsScreen";
 import DiscoverScreen from "@/screens/couple/DiscoverScreen";
 import PlanToolsScreen from "@/screens/couple/PlanToolsScreen";
+import ToolsScreen from "@/screens/couple/ToolsScreen";
 
 export type CoupleTabParamList = {
   CoupleHome: undefined;
@@ -16,6 +17,7 @@ export type CoupleTabParamList = {
   Connect: undefined;
   Discover: undefined;
   Plan: undefined;
+  Tools: undefined;
 };
 
 const Tab = createBottomTabNavigator<CoupleTabParamList>();
@@ -119,6 +121,18 @@ export default function CoupleTabNavigator() {
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconContainer : undefined}>
               <Feather name="calendar" size={22} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Tools"
+        component={ToolsScreen}
+        options={{
+          title: "Tools",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconContainer : undefined}>
+              <Feather name="tool" size={22} color={color} />
             </View>
           ),
         }}
