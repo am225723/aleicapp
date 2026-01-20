@@ -117,6 +117,7 @@ The app uses Supabase for data persistence with the following tables:
 - `voice_memos` - Audio recordings with Supabase Storage
 - `shared_goals` - Couple goal tracking (Kanban-style)
 - `demon_dialogues` - EFT negative cycle patterns
+- `love_language_results` - Love language quiz results with scores
 - `attachment_results` - Attachment style assessments
 - `enneagram_results` - Enneagram type results
 - `ifs_sessions` - Internal Family Systems parts work
@@ -131,6 +132,13 @@ The app uses Supabase for data persistence with the following tables:
 All tables have RLS policies for proper data isolation by couple_id.
 
 ## Recent Changes
+- January 2026: Enhanced assessment results pages
+  - Love Language Quiz: 30 forced-choice questions with detailed results page
+  - All assessments now use direct Supabase storage with consistent table structure
+  - Attachment Assessment: Color-coded results with characteristics, growth tips, and partner guidance
+  - Enneagram Assessment: Type descriptions with core motivations, strengths, and relationship insights
+  - All results pages feature: score breakdowns, progress bars, retake functionality
+  - Added loading states and existing results retrieval from Supabase
 - January 2026: Navigation and quiz updates
   - Updated tab navigation to 5 tabs: Home, Connect, Activities, Plan, Profile
   - Rewrote Love Map Quiz with truths/guesses/results phases (Gottman method)
