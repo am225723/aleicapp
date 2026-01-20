@@ -131,6 +131,12 @@ The app uses Supabase for data persistence with the following tables:
 All tables have RLS policies for proper data isolation by couple_id.
 
 ## Recent Changes
+- January 2026: Navigation and quiz updates
+  - Updated tab navigation to 5 tabs: Home, Connect, Activities, Plan, Profile
+  - Rewrote Love Map Quiz with truths/guesses/results phases (Gottman method)
+  - Added Date Night Generator screen with AI-powered suggestions via Supabase Edge Function
+  - Added Date Night widget to Home dashboard
+  - Date Night Generator uses Perplexity API for location-based personalized suggestions
 - January 2026: Migrated core features from AsyncStorage to Supabase
   - Created 7 new Couples_* tables with RLS policies
   - Built dedicated service modules in client/services/
