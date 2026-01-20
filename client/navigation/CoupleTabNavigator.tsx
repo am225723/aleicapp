@@ -5,14 +5,16 @@ import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
 
 import CoupleHomeScreen from "@/screens/couple/CoupleHomeScreen";
-import MessagesScreen from "@/screens/couple/MessagesScreen";
+import ConnectScreen from "@/screens/couple/ConnectScreen";
 import ActivitiesScreen from "@/screens/couple/ActivitiesScreen";
+import PlanScreen from "@/screens/couple/PlanScreen";
 import CoupleProfileScreen from "@/screens/couple/CoupleProfileScreen";
 
 export type CoupleTabParamList = {
   CoupleHome: undefined;
-  Messages: undefined;
+  Connect: undefined;
   Activities: undefined;
+  Plan: undefined;
   CoupleProfile: undefined;
 };
 
@@ -74,13 +76,13 @@ export default function CoupleTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Messages"
-        component={MessagesScreen}
+        name="Connect"
+        component={ConnectScreen}
         options={{
-          title: "Messages",
+          title: "Connect",
           tabBarIcon: ({ color, size, focused }) => (
             <View style={focused ? styles.activeIconContainer : undefined}>
-              <Feather name="message-square" size={22} color={color} />
+              <Feather name="heart" size={22} color={color} />
             </View>
           ),
         }}
@@ -89,10 +91,22 @@ export default function CoupleTabNavigator() {
         name="Activities"
         component={ActivitiesScreen}
         options={{
-          title: "Quiz",
+          title: "Activities",
           tabBarIcon: ({ color, size, focused }) => (
             <View style={focused ? styles.activeIconContainer : undefined}>
-              <Feather name="award" size={22} color={color} />
+              <Feather name="compass" size={22} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Plan"
+        component={PlanScreen}
+        options={{
+          title: "Plan",
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={focused ? styles.activeIconContainer : undefined}>
+              <Feather name="calendar" size={22} color={color} />
             </View>
           ),
         }}

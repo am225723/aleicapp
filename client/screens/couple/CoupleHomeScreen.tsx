@@ -279,6 +279,16 @@ export default function CoupleHomeScreen() {
       size: "small",
       badge: gratitudeCount > 0 ? `${gratitudeCount} entries` : undefined,
     },
+    {
+      id: "datenight",
+      title: "Date Night",
+      subtitle: "AI-powered ideas",
+      icon: "heart",
+      iconColor: "#E8A59C",
+      backgroundColor: DashboardColors.cardTeal,
+      route: "DateNight",
+      size: "medium",
+    },
   ];
 
   return (
@@ -314,10 +324,11 @@ export default function CoupleHomeScreen() {
           </View>
           <View style={styles.widgetRow}>
             {renderWidget(widgets[2])}
+            {renderWidget(widgets[3])}
           </View>
           <View style={styles.widgetRow}>
-            {renderWidget(widgets[3])}
             {renderWidget(widgets[4])}
+            {renderWidget(widgets[5])}
           </View>
         </View>
 

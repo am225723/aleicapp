@@ -1,13 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
-  Pressable,
+  TextInput,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
@@ -21,23 +22,30 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Spacing, BorderRadius } from "@/constants/theme";
 
+type Phase = "truths" | "guesses" | "results";
+
 const QUESTIONS = [
-  { id: 1, text: "I know my partner's favorite way to spend an evening." },
-  { id: 2, text: "I know what stresses my partner currently." },
-  { id: 3, text: "I know my partner's dreams and aspirations." },
-  { id: 4, text: "I know my partner's favorite movie." },
-  { id: 5, text: "I know my partner's biggest fear." },
-  { id: 6, text: "I know what my partner would do if they won the lottery." },
-  { id: 7, text: "I know my partner's favorite meal." },
-  { id: 8, text: "I know my partner's best friend's name." },
-  { id: 9, text: "I know what makes my partner feel loved." },
-  { id: 10, text: "I know my partner's favorite way to relax." },
-  { id: 11, text: "I know what my partner is most proud of." },
-  { id: 12, text: "I know my partner's favorite book or author." },
-  { id: 13, text: "I know my partner's childhood nickname." },
-  { id: 14, text: "I know my partner's favorite holiday or trip." },
-  { id: 15, text: "I know what my partner worries about most." },
+  { id: 1, text: "What is your partner's favorite way to spend an evening?" },
+  { id: 2, text: "What stresses your partner currently?" },
+  { id: 3, text: "What are your partner's dreams and aspirations?" },
+  { id: 4, text: "What is your partner's favorite movie?" },
+  { id: 5, text: "What is your partner's biggest fear?" },
+  { id: 6, text: "What would your partner do if they won the lottery?" },
+  { id: 7, text: "What is your partner's favorite meal?" },
+  { id: 8, text: "Who is your partner's best friend?" },
+  { id: 9, text: "What makes your partner feel most loved?" },
+  { id: 10, text: "What is your partner's favorite way to relax?" },
 ];
+
+interface TruthEntry {
+  question_id: number;
+  answer: string;
+}
+
+interface GuessEntry {
+  question_id: number;
+  guess: string;
+}
 
 export default function LoveMapQuizScreen() {
   const { theme } = useTheme();
@@ -45,78 +53,86 @@ export default function LoveMapQuizScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
-  const queryClient = useQueryClient();
 
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, boolean>>({});
-  const [showResult, setShowResult] = useState(false);
+  const [phase, setPhase] = useState<Phase>("truths");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answer, setAnswer] = useState("");
+  const [truths, setTruths] = useState<TruthEntry[]>([]);
+  const [guesses, setGuesses] = useState<GuessEntry[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [results, setResults] = useState<{
+    truths: TruthEntry[];
+    guesses: GuessEntry[];
+  } | null>(null);
 
-  const submitMutation = useMutation({
-    mutationFn: async (data: { score: number; answers: Record<number, boolean> }) => {
-      if (!profile) throw new Error("Not authenticated");
-      const { error } = await supabase.from("love_map_results").insert({
-        user_id: profile.id,
-        couple_id: profile.couple_id,
-        score: data.score,
-        total_questions: QUESTIONS.length,
-        answers: data.answers,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["love-map-results"] });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    },
-  });
+  const currentQuestion = QUESTIONS[currentIndex];
+  const progress = ((currentIndex + 1) / QUESTIONS.length) * 100;
 
-  const handleAnswer = (value: boolean) => {
-    const newAnswers = { ...answers, [QUESTIONS[currentQuestion].id]: value };
-    setAnswers(newAnswers);
+  const handleSubmitTruth = () => {
+    if (!answer.trim()) {
+      Alert.alert("Required", "Please enter your answer");
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    const newTruths = [...truths, { question_id: currentQuestion.id, answer: answer.trim() }];
+    setTruths(newTruths);
+    setAnswer("");
 
-    if (currentQuestion < QUESTIONS.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
+    if (currentIndex < QUESTIONS.length - 1) {
+      setCurrentIndex(currentIndex + 1);
     } else {
-      const score = Object.values(newAnswers).filter(Boolean).length;
-      submitMutation.mutate({ score, answers: newAnswers });
-      setShowResult(true);
+      Alert.alert(
+        "Phase 1 Complete!",
+        "Now guess what your partner would answer for each question.",
+        [{ text: "Continue", onPress: () => {
+          setPhase("guesses");
+          setCurrentIndex(0);
+        }}]
+      );
     }
   };
 
-  const getResultMessage = (score: number) => {
-    const percentage = (score / QUESTIONS.length) * 100;
-    if (percentage >= 80) {
-      return {
-        title: "Excellent!",
-        message: "You have a strong love map. You really know your partner well!",
-        icon: "award",
-      };
-    } else if (percentage >= 60) {
-      return {
-        title: "Good Foundation",
-        message: "You have a solid understanding of your partner. Keep exploring together!",
-        icon: "thumbs-up",
-      };
-    } else if (percentage >= 40) {
-      return {
-        title: "Room to Grow",
-        message: "There's an opportunity to deepen your connection. Ask more questions!",
-        icon: "heart",
-      };
+  const handleSubmitGuess = async () => {
+    if (!answer.trim()) {
+      Alert.alert("Required", "Please enter your guess");
+      return;
+    }
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    const newGuesses = [...guesses, { question_id: currentQuestion.id, guess: answer.trim() }];
+    setGuesses(newGuesses);
+    setAnswer("");
+
+    if (currentIndex < QUESTIONS.length - 1) {
+      setCurrentIndex(currentIndex + 1);
     } else {
-      return {
-        title: "Time to Connect",
-        message: "Use this as inspiration to learn more about your partner's inner world.",
-        icon: "compass",
-      };
+      setIsSubmitting(true);
+      try {
+        if (profile?.couple_id) {
+          await supabase.from("love_map_results").insert({
+            user_id: profile.id,
+            couple_id: profile.couple_id,
+            truths: truths,
+            guesses: newGuesses,
+            total_questions: QUESTIONS.length,
+          });
+        }
+        setResults({ truths, guesses: newGuesses });
+        setPhase("results");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        console.error("Error saving results:", error);
+        Alert.alert("Error", "Failed to save results. Please try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
-  if (showResult) {
-    const score = Object.values(answers).filter(Boolean).length;
-    const result = getResultMessage(score);
-    const percentage = Math.round((score / QUESTIONS.length) * 100);
-
+  if (phase === "results" && results) {
     return (
       <ThemedView style={styles.container}>
         <ScrollView
@@ -125,63 +141,88 @@ export default function LoveMapQuizScreen() {
             { paddingTop: headerHeight + Spacing.lg, paddingBottom: insets.bottom + Spacing.xl },
           ]}
         >
-          <View style={styles.resultContainer}>
+          <View style={styles.resultHeader}>
             <View style={[styles.resultIcon, { backgroundColor: theme.link }]}>
-              <Feather name={result.icon as any} size={32} color={theme.buttonText} />
+              <Feather name="heart" size={32} color="#fff" />
             </View>
-
             <ThemedText type="h2" style={styles.resultTitle}>
-              {result.title}
+              Quiz Complete!
             </ThemedText>
+            <ThemedText type="body" style={[styles.resultSubtitle, { color: theme.textSecondary }]}>
+              Compare your answers with your partner
+            </ThemedText>
+          </View>
 
-            <View style={styles.scoreContainer}>
-              <ThemedText type="h1" style={[styles.scoreText, { color: theme.link }]}>
-                {score}/{QUESTIONS.length}
-              </ThemedText>
-              <ThemedText type="body" style={styles.percentageText}>
-                {percentage}% accuracy
+          <ThemedText type="h4" style={styles.sectionTitle}>
+            Your Answers & Guesses
+          </ThemedText>
+
+          {QUESTIONS.map((question, index) => {
+            const truth = results.truths.find(t => t.question_id === question.id);
+            const guess = results.guesses.find(g => g.question_id === question.id);
+
+            return (
+              <Card key={question.id} style={styles.resultCard}>
+                <ThemedText type="h4" style={styles.questionTitle}>
+                  {question.text}
+                </ThemedText>
+                
+                <View style={styles.answerRow}>
+                  <View style={[styles.answerBadge, { backgroundColor: theme.success + "20" }]}>
+                    <ThemedText type="small" style={{ color: theme.success }}>
+                      Your Truth
+                    </ThemedText>
+                  </View>
+                  <ThemedText type="body" style={styles.answerText}>
+                    {truth?.answer || "—"}
+                  </ThemedText>
+                </View>
+
+                <View style={styles.answerRow}>
+                  <View style={[styles.answerBadge, { backgroundColor: theme.link + "20" }]}>
+                    <ThemedText type="small" style={{ color: theme.link }}>
+                      Your Guess
+                    </ThemedText>
+                  </View>
+                  <ThemedText type="body" style={styles.answerText}>
+                    {guess?.guess || "—"}
+                  </ThemedText>
+                </View>
+              </Card>
+            );
+          })}
+
+          <Card style={styles.tipsCard}>
+            <ThemedText type="h4" style={styles.tipsTitle}>
+              What's Next?
+            </ThemedText>
+            <View style={styles.tipRow}>
+              <Feather name="users" size={16} color={theme.success} />
+              <ThemedText type="body" style={styles.tipText}>
+                Share this quiz with your partner
               </ThemedText>
             </View>
-
-            <ThemedText type="body" style={styles.resultMessage}>
-              {result.message}
-            </ThemedText>
-
-            <Card style={styles.tipsCard}>
-              <ThemedText type="h4" style={styles.tipsTitle}>
-                Deepen Your Love Map
+            <View style={styles.tipRow}>
+              <Feather name="message-circle" size={16} color={theme.success} />
+              <ThemedText type="body" style={styles.tipText}>
+                Compare answers together
               </ThemedText>
-              <View style={styles.tipRow}>
-                <Feather name="message-circle" size={16} color={theme.success} />
-                <ThemedText type="body" style={styles.tipText}>
-                  Ask open-ended questions daily
-                </ThemedText>
-              </View>
-              <View style={styles.tipRow}>
-                <Feather name="calendar" size={16} color={theme.success} />
-                <ThemedText type="body" style={styles.tipText}>
-                  Schedule weekly check-ins
-                </ThemedText>
-              </View>
-              <View style={styles.tipRow}>
-                <Feather name="book-open" size={16} color={theme.success} />
-                <ThemedText type="body" style={styles.tipText}>
-                  Share dreams and goals regularly
-                </ThemedText>
-              </View>
-            </Card>
+            </View>
+            <View style={styles.tipRow}>
+              <Feather name="refresh-cw" size={16} color={theme.success} />
+              <ThemedText type="body" style={styles.tipText}>
+                Take the quiz again in a few months
+              </ThemedText>
+            </View>
+          </Card>
 
-            <Button onPress={() => navigation.goBack()} style={styles.doneButton}>
-              Done
-            </Button>
-          </View>
+          <Button onPress={() => navigation.goBack()} style={styles.doneButton}>
+            Done
+          </Button>
         </ScrollView>
       </ThemedView>
     );
   }
-
-  const question = QUESTIONS[currentQuestion];
-  const progress = ((currentQuestion + 1) / QUESTIONS.length) * 100;
 
   return (
     <ThemedView style={styles.container}>
@@ -194,9 +235,15 @@ export default function LoveMapQuizScreen() {
         <ThemedText type="h2" style={styles.title}>
           Love Map Quiz
         </ThemedText>
-        <ThemedText type="small" style={styles.subtitle}>
-          How well do you know your partner? (Gottman)
+        <ThemedText type="small" style={[styles.subtitle, { color: theme.textSecondary }]}>
+          How well do you know your partner? (Gottman Method)
         </ThemedText>
+
+        <View style={[styles.phaseBadge, { backgroundColor: phase === "truths" ? theme.success + "20" : theme.link + "20" }]}>
+          <ThemedText type="body" style={{ color: phase === "truths" ? theme.success : theme.link, fontWeight: "600" }}>
+            Phase {phase === "truths" ? "1" : "2"}: {phase === "truths" ? "Your Truths" : "Guess Your Partner"}
+          </ThemedText>
+        </View>
 
         <View style={styles.progressContainer}>
           <View style={[styles.progressBar, { backgroundColor: theme.border }]}>
@@ -207,34 +254,56 @@ export default function LoveMapQuizScreen() {
               ]}
             />
           </View>
-          <ThemedText type="small" style={styles.progressText}>
-            Question {currentQuestion + 1} of {QUESTIONS.length}
+          <ThemedText type="small" style={[styles.progressText, { color: theme.textSecondary }]}>
+            Question {currentIndex + 1} of {QUESTIONS.length}
           </ThemedText>
         </View>
 
         <Card style={styles.questionCard}>
           <ThemedText type="h4" style={styles.questionText}>
-            {question.text}
+            {currentQuestion.text}
           </ThemedText>
 
-          <View style={styles.optionsContainer}>
-            <Pressable
-              style={[styles.optionButton, { backgroundColor: theme.success }]}
-              onPress={() => handleAnswer(true)}
-            >
-              <Feather name="check" size={24} color="#fff" />
-              <ThemedText style={styles.optionText}>Yes, I know this</ThemedText>
-            </Pressable>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.backgroundSecondary,
+                borderColor: theme.border,
+                color: theme.text,
+              },
+            ]}
+            value={answer}
+            onChangeText={setAnswer}
+            placeholder={phase === "truths" ? "Your answer..." : "What would they say?"}
+            placeholderTextColor={theme.textSecondary}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
 
-            <Pressable
-              style={[styles.optionButton, { backgroundColor: theme.error }]}
-              onPress={() => handleAnswer(false)}
-            >
-              <Feather name="x" size={24} color="#fff" />
-              <ThemedText style={styles.optionText}>Not sure</ThemedText>
-            </Pressable>
-          </View>
+          <Button
+            onPress={phase === "truths" ? handleSubmitTruth : handleSubmitGuess}
+            disabled={isSubmitting}
+            style={styles.submitButton}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              phase === "truths" ? "Submit Answer" : "Submit Guess"
+            )}
+          </Button>
         </Card>
+
+        {phase === "truths" ? (
+          <ThemedText type="small" style={[styles.hint, { color: theme.textSecondary }]}>
+            Answer honestly about yourself. Your partner will try to guess your answers later.
+          </ThemedText>
+        ) : (
+          <ThemedText type="small" style={[styles.hint, { color: theme.textSecondary }]}>
+            Think about what your partner would say. This helps you understand their perspective.
+          </ThemedText>
+        )}
       </ScrollView>
     </ThemedView>
   );
@@ -251,8 +320,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   subtitle: {
-    opacity: 0.7,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
+  },
+  phaseBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
   },
   progressContainer: {
     marginBottom: Spacing.xl,
@@ -267,34 +342,33 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   progressText: {
-    opacity: 0.6,
     textAlign: "center",
   },
   questionCard: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   questionText: {
-    textAlign: "center",
-    marginBottom: Spacing["3xl"],
+    marginBottom: Spacing.xl,
+    lineHeight: 26,
   },
-  optionsContainer: {
-    gap: Spacing.lg,
-  },
-  optionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.md,
-  },
-  optionText: {
-    color: "#fff",
+  input: {
     fontSize: 16,
-    fontWeight: "600",
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    minHeight: 120,
+    marginBottom: Spacing.lg,
   },
-  resultContainer: {
+  submitButton: {
+    marginTop: Spacing.sm,
+  },
+  hint: {
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  resultHeader: {
     alignItems: "center",
+    marginBottom: Spacing.xl,
   },
   resultIcon: {
     width: 80,
@@ -302,28 +376,39 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: Spacing.xl,
-  },
-  resultTitle: {
     marginBottom: Spacing.lg,
   },
-  scoreContainer: {
-    alignItems: "center",
-    marginBottom: Spacing.xl,
-  },
-  scoreText: {
+  resultTitle: {
     marginBottom: Spacing.xs,
   },
-  percentageText: {
-    opacity: 0.6,
-  },
-  resultMessage: {
+  resultSubtitle: {
     textAlign: "center",
-    opacity: 0.8,
-    marginBottom: Spacing.xl,
+  },
+  sectionTitle: {
+    marginBottom: Spacing.lg,
+  },
+  resultCard: {
+    marginBottom: Spacing.md,
+  },
+  questionTitle: {
+    marginBottom: Spacing.md,
+    lineHeight: 24,
+  },
+  answerRow: {
+    marginBottom: Spacing.sm,
+  },
+  answerBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.xs,
+  },
+  answerText: {
+    lineHeight: 22,
   },
   tipsCard: {
-    width: "100%",
+    marginTop: Spacing.lg,
     marginBottom: Spacing.xl,
   },
   tipsTitle: {
@@ -338,6 +423,6 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
   },
   doneButton: {
-    width: "100%",
+    marginBottom: Spacing.lg,
   },
 });
