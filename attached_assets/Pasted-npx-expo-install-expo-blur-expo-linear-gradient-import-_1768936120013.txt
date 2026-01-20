@@ -1,0 +1,271 @@
+npx expo install expo-blur expo-linear-gradient
+
+import React from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ViewStyle,
+  StyleProp,
+} from "react-native";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+
+type GlassTone = "blue" | "green" | "amber";
+
+const TONE = {
+  blue: {
+    outer: ["rgba(130,190,255,0.42)", "rgba(70,120,255,0.10)"],
+    inner: ["rgba(255,255,255,0.20)", "rgba(255,255,255,0.05)"],
+    glow: "rgba(120, 180, 255, 0.45)",
+    bgTint: "rgba(20, 40, 70, 0.35)",
+  },
+  green: {
+    outer: ["rgba(120,255,200,0.38)", "rgba(50,180,140,0.10)"],
+    inner: ["rgba(255,255,255,0.20)", "rgba(255,255,255,0.05)"],
+    glow: "rgba(120, 255, 200, 0.38)",
+    bgTint: "rgba(15, 55, 45, 0.32)",
+  },
+  amber: {
+    outer: ["rgba(255,210,120,0.42)", "rgba(255,140,40,0.10)"],
+    inner: ["rgba(255,255,255,0.20)", "rgba(255,255,255,0.05)"],
+    glow: "rgba(255, 190, 120, 0.40)",
+    bgTint: "rgba(70, 45, 20, 0.34)",
+  },
+} as const;
+
+export function GlassWidget(props: {
+  title: string;
+  subtitle?: string;
+  badgeText?: string;
+  tone?: GlassTone;
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+  leftIcon?: React.ReactNode;
+  rightSlot?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  const {
+    title,
+    subtitle,
+    badgeText,
+    tone = "blue",
+    onPress,
+    style,
+    leftIcon,
+    rightSlot,
+    children,
+  } = props;
+
+  const c = TONE[tone];
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.cardWrap,
+        { shadowColor: c.glow, transform: [{ scale: pressed ? 0.985 : 1 }] },
+        style,
+      ]}
+    >
+      {/* Glowy border */}
+      <LinearGradient
+        colors={c.outer}
+        start={{ x: 0.1, y: 0.0 }}
+        end={{ x: 0.9, y: 1.0 }}
+        style={styles.outer}
+      >
+        {/* Clip radius for blur */}
+        <View style={styles.clip}>
+          <BlurView intensity={28} tint="dark" style={styles.blur}>
+            {/* Base tint (helps if blur is subtle on Android) */}
+            <View style={[StyleSheet.absoluteFillObject, { backgroundColor: c.bgTint }]} />
+
+            {/* Inner sheen */}
+            <LinearGradient
+              colors={c.inner}
+              start={{ x: 0.1, y: 0.0 }}
+              end={{ x: 0.8, y: 1.0 }}
+              style={styles.innerSheen}
+            />
+
+            {/* Top highlight */}
+            <LinearGradient
+              colors={["rgba(255,255,255,0.33)", "rgba(255,255,255,0.0)"]}
+              start={{ x: 0.2, y: 0.0 }}
+              end={{ x: 0.2, y: 1.0 }}
+              style={styles.topHighlight}
+            />
+
+            {/* Badge */}
+            {badgeText ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{badgeText}</Text>
+              </View>
+            ) : null}
+
+            {/* Header */}
+            <View style={styles.headerRow}>
+              <View style={styles.leftCol}>
+                <View style={styles.titleRow}>
+                  {leftIcon ? <View style={styles.icon}>{leftIcon}</View> : null}
+                  <Text numberOfLines={1} style={styles.title}>
+                    {title}
+                  </Text>
+                </View>
+
+                {subtitle ? (
+                  <Text numberOfLines={2} style={styles.subtitle}>
+                    {subtitle}
+                  </Text>
+                ) : null}
+              </View>
+
+              {rightSlot ? <View style={styles.rightSlot}>{rightSlot}</View> : null}
+            </View>
+
+            {/* Body */}
+            {children ? <View style={styles.body}>{children}</View> : null}
+
+            {/* Texture/noise */}
+            <NoiseOverlay opacity={0.10} />
+          </BlurView>
+        </View>
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
+function NoiseOverlay({ opacity = 0.08 }: { opacity?: number }) {
+  const dots = React.useMemo(() => {
+    const arr: Array<{ left: number; top: number; a: number }> = [];
+    // Small number of dots, subtle texture
+    for (let i = 0; i < 60; i++) {
+      arr.push({
+        left: Math.random() * 320,
+        top: Math.random() * 180,
+        a: 0.25 + Math.random() * 0.55,
+      });
+    }
+    return arr;
+  }, []);
+
+  return (
+    <View pointerEvents="none" style={[styles.noiseWrap, { opacity }]}>
+      {dots.map((d, i) => (
+        <View
+          key={i}
+          style={[
+            styles.dot,
+            { left: d.left, top: d.top, opacity: d.a },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  cardWrap: {
+    borderRadius: 22,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.30,
+    shadowRadius: 18,
+    elevation: 10,
+  },
+  outer: {
+    borderRadius: 22,
+    padding: 1.25,
+  },
+  clip: {
+    borderRadius: 22,
+    overflow: "hidden",
+  },
+  blur: {
+    borderRadius: 22,
+    minHeight: 110,
+    padding: 16,
+  },
+  innerSheen: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.95,
+  },
+  topHighlight: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 18,
+    opacity: 0.7,
+  },
+  badge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  badgeText: {
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  leftCol: {
+    flex: 1,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  icon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    color: "rgba(255,255,255,0.95)",
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+    flexShrink: 1,
+  },
+  subtitle: {
+    marginTop: 6,
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  rightSlot: {
+    alignItems: "flex-end",
+    justifyContent: "flex-start",
+  },
+  body: {
+    marginTop: 12,
+  },
+  noiseWrap: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  dot: {
+    position: "absolute",
+    width: 1,
+    height: 1,
+    borderRadius: 1,
+    backgroundColor: "rgba(255,255,255,1)",
+  },
+});
