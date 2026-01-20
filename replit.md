@@ -128,10 +128,29 @@ The app uses Supabase for data persistence with the following tables:
 - `financial_conversations` - Financial conversation logs
 - `values_vision` - Shared values and vision entries
 - `therapist_messages` - Therapist-couple messaging
+- `Couples_moods` - Daily mood tracking (1-10 scale)
+- `user_settings` - User notification/privacy preferences
+- `compatibility_results` - Partner compatibility quiz answers
+- `daily_suggestions` - AI-generated daily relationship tips
+- `Couples_chores` - Shared household chore management
+- `growth_plans` - Relationship growth plans with milestones
+- `user_roles` - Admin/therapist role assignments
 
 All tables have RLS policies for proper data isolation by couple_id.
 
+### Admin Management (admin-only access)
+- Admin Dashboard with system statistics
+- Therapist Management for activating/deactivating therapists
+- User Management for managing all user accounts
+- Access controlled via `user_roles` table (role='admin')
+
 ## Recent Changes
+- January 2026: Added new screens and admin system
+  - New couple screens: Analytics, Check-in History, Mood Tracker, Settings, Growth Plan, Progress Timeline, Daily Suggestion
+  - New tools: Conflict Resolution, Compatibility Assessment, Chore Chart
+  - Couple Setup screen for partner linking with 6-digit invite codes
+  - Admin system: Dashboard, Therapist Management, User Management (admin-only access)
+  - Created documentation: docs/MISSING_SCREENS_IMPLEMENTED.md
 - January 2026: Updated widget design and category screens
   - Enhanced GlowWidget component with action buttons, preview items, and status text
   - Added CategoryHeroCard component for gradient hero graphics at top of screens
