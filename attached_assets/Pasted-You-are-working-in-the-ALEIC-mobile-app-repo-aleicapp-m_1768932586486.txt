@@ -1,0 +1,75 @@
+You are working in the ALEIC mobile app repo (aleicapp-main). Implement Option A: move Love Language results storage + retrieval to Supabase (consistent with Attachment + Enneagram). Do NOT rely on Express API routes (/api/love-language). Goal: ensure Love Language quiz results are reliably stored and displayed.
+
+SCOPE
+- Create a Supabase table to store Love Language results (new migration).
+- Add RLS policies following the same pattern used by attachment_results and enneagram_results.
+- Update the LoveLanguageQuizScreen to read/write directly to Supabase.
+- Keep the existing UI flow intact unless minor tweaks are necessary.
+- Ensure TypeScript passes and the app runs.
+
+FILES/AREAS TO TOUCH
+1) Database migration:
+- Add a new SQL migration under: aleicapp-main/supabase/migrations/
+Name it with a timestamp prefix like: 20260120_love_language_results.sql
+
+Create table: love_language_results
+Recommended columns:
+- id uuid primary key default gen_random_uuid()
+- created_at timestamptz not null default now()
+- user_id uuid not null references auth.users(id) on delete cascade
+- couple_id uuid null (if your app uses it like other results tables; match existing patterns)
+- primary_language text not null
+- scores jsonb not null (store 5-language score breakdown)
+- answers jsonb null (store raw answers if needed)
+Indexes:
+- index on (user_id, created_at desc)
+- index on (couple_id, created_at desc) if couple_id is used elsewhere
+
+RLS:
+- Enable RLS on love_language_results.
+- Policies should mirror attachment_results/enneagram_results:
+  - Allow authenticated users to INSERT rows where user_id = auth.uid()
+  - Allow authenticated users to SELECT their own rows (user_id = auth.uid())
+  - If partner viewing is supported in your app: allow SELECT where couple_id matches a couple the user belongs to (use the same helper/join logic already used in other policies). If no such pattern exists, at minimum allow own rows.
+
+2) App code:
+Update: aleicapp-main/client/screens/couple/LoveLanguageQuizScreen.tsx
+
+Remove all usage of:
+- apiRequest("POST", "/api/love-language", ...)
+- useQuery calls hitting "/api/love-language/user"
+
+Replace with Supabase usage like other assessments:
+- Use supabase.from("love_language_results").select(...).eq("user_id", profile.id).order("created_at", { ascending: false }).limit(1).single()
+- On completion, compute scores + primary_language and insert:
+  supabase.from("love_language_results").insert({
+    user_id: profile.id,
+    couple_id: profile.couple_id ?? null (only if profile contains couple_id),
+    primary_language,
+    scores,
+    answers
+  })
+
+Behavior requirements:
+- When the screen loads, if a latest result exists, display it (same behavior as existingResult).
+- After completing the quiz, save to Supabase, then show results immediately.
+- Handle loading/error states gracefully (do not crash if no result exists).
+- Ensure the quiz can be retaken and creates a new row (don’t overwrite).
+
+3) Optional: remove dead code
+- If there are now-unused server routes or hooks specific to /api/love-language, do NOT delete them unless they are clearly unused and safe to remove. Prefer leaving server stubs.
+
+ACCEPTANCE CHECKLIST
+- Running the Love Language quiz saves a row in love_language_results.
+- Reopening the screen fetches the latest result and displays it.
+- TypeScript builds with no errors.
+- No runtime errors when profile is null or couple_id is missing.
+- RLS allows the authenticated user to insert and read their own rows.
+
+DELIVERABLES
+- Implement the migration + policies.
+- Update LoveLanguageQuizScreen.tsx to use Supabase directly.
+- Add a short note in /docs/SCREEN_PARITY_REPORT.md (or create it if missing) explaining Love Language storage is now Supabase-based like attachment + enneagram.
+
+COMMIT
+Commit with message: "Store love language results in Supabase"

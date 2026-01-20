@@ -1,7 +1,7 @@
-import React from "react";
-import { StyleSheet, View, ScrollView } from "react-native";
+import React, { useState, useCallback } from "react";
+import { StyleSheet, View, ScrollView, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -11,15 +11,78 @@ import {
   GlowWidgetRow,
   GlowBackground,
   GlowColors,
+  CategoryHeroCard,
 } from "@/components/GlowWidget";
 import { Spacing } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ConnectToolsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
+  const { profile } = useAuth();
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [messageCount, setMessageCount] = useState(0);
+  const [demonDialogueCount, setDemonDialogueCount] = useState(0);
+  const [intimacyStatus, setIntimacyStatus] = useState("Explore your connection");
+  const [recentMessages, setRecentMessages] = useState<any[]>([]);
+
+  const loadData = useCallback(async () => {
+    if (!profile?.couple_id) return;
+
+    try {
+      const { data: messages, count: msgCount } = await supabase
+        .from("therapist_messages")
+        .select("*", { count: "exact" })
+        .eq("couple_id", profile.couple_id)
+        .order("created_at", { ascending: false })
+        .limit(3);
+      
+      setMessageCount(msgCount || 0);
+      if (messages && messages.length > 0) {
+        setRecentMessages(messages.slice(0, 2).map(m => ({
+          icon: m.sender_role === "therapist" ? "user" : "heart",
+          title: m.sender_role === "therapist" ? "Therapist" : "You",
+          subtitle: m.content.substring(0, 30) + (m.content.length > 30 ? "..." : ""),
+        })));
+      }
+
+      const { count: demonCount } = await supabase
+        .from("demon_dialogues")
+        .select("*", { count: "exact", head: true })
+        .eq("couple_id", profile.couple_id);
+      setDemonDialogueCount(demonCount || 0);
+
+      const { data: intimacy } = await supabase
+        .from("intimacy_maps")
+        .select("*")
+        .eq("couple_id", profile.couple_id)
+        .single();
+      
+      if (intimacy) {
+        setIntimacyStatus("Map created");
+      }
+
+    } catch (error) {
+      console.error("Error loading connect data:", error);
+    }
+  }, [profile?.couple_id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadData();
+    setIsRefreshing(false);
+  };
 
   const handleNavigate = (route: keyof RootStackParamList) => {
     navigation.navigate(route as any);
@@ -36,13 +99,19 @@ export default function ConnectToolsScreen() {
           { paddingBottom: insets.bottom + 100 },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={GlowColors.gold}
+          />
+        }
       >
-        <View style={styles.header}>
-          <ThemedText style={styles.headerTitle}>Connect</ThemedText>
-          <ThemedText style={styles.headerSubtitle}>
-            Communicate and grow together
-          </ThemedText>
-        </View>
+        <CategoryHeroCard
+          title="Connect"
+          subtitle="Communicate and grow closer together"
+          gradientColors={["rgba(232, 165, 156, 0.4)", "rgba(100, 60, 60, 0.5)", "rgba(13, 13, 15, 0.95)"]}
+        />
 
         <GlowWidgetGrid>
           <GlowWidgetRow>
@@ -53,14 +122,22 @@ export default function ConnectToolsScreen() {
               iconColor={GlowColors.accentPink}
               backgroundColor={GlowColors.cardBrown}
               onPress={() => handleNavigate("EchoEmpathy")}
+              actionButton={{
+                label: "Start",
+                icon: "play",
+              }}
             />
             <GlowWidget
               title="Hold Me Tight"
-              subtitle="EFT conversation prompts"
+              subtitle="EFT conversation"
               icon="heart"
               iconColor={GlowColors.accentGreen}
               backgroundColor={GlowColors.cardGreen}
               onPress={() => handleNavigate("HoldMeTight")}
+              actionButton={{
+                label: "Begin",
+                icon: "heart",
+              }}
             />
           </GlowWidgetRow>
 
@@ -72,6 +149,7 @@ export default function ConnectToolsScreen() {
               iconColor={GlowColors.accentOrange}
               backgroundColor={GlowColors.cardOrange}
               onPress={() => handleNavigate("DemonDialogues")}
+              badge={demonDialogueCount > 0 ? `${demonDialogueCount} identified` : undefined}
             />
             <GlowWidget
               title="Four Horsemen"
@@ -80,25 +158,30 @@ export default function ConnectToolsScreen() {
               iconColor={GlowColors.gold}
               backgroundColor={GlowColors.cardDark}
               onPress={() => handleNavigate("FourHorsemen")}
+              statusText="Gottman method"
             />
           </GlowWidgetRow>
 
           <GlowWidgetRow>
             <GlowWidget
-              title="Messages"
+              title="Therapist Messages"
               subtitle="Chat with your therapist"
               icon="mail"
               iconColor={GlowColors.accentBlue}
               backgroundColor={GlowColors.cardBlue}
               onPress={() => handleNavigate("Messages")}
+              badge={messageCount > 0 ? messageCount : undefined}
+              previewItems={recentMessages.length > 0 ? recentMessages : undefined}
+              size="large"
             />
             <GlowWidget
               title="Intimacy Map"
-              subtitle="Explore your preferences"
+              subtitle="Explore preferences"
               icon="layers"
               iconColor={GlowColors.accentRed}
               backgroundColor={GlowColors.cardRed}
               onPress={() => handleNavigate("IntimacyMapping")}
+              statusText={intimacyStatus}
             />
           </GlowWidgetRow>
         </GlowWidgetGrid>
@@ -117,20 +200,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Spacing.lg,
-  },
-  header: {
-    marginBottom: Spacing.xl,
-    marginTop: Spacing.md,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontFamily: "Nunito_700Bold",
-    color: GlowColors.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: GlowColors.textSecondary,
-    fontFamily: "Nunito_400Regular",
+    paddingTop: Spacing.md,
   },
 });
