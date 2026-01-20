@@ -34,14 +34,6 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const dateNightSuggestions = [
-  { title: "Stargazing Night", description: "Find a quiet spot and watch the stars together" },
-  { title: "Cooking Challenge", description: "Pick a cuisine and cook a meal together" },
-  { title: "Movie Marathon", description: "Watch your favorite movies from when you first met" },
-  { title: "Picnic in the Park", description: "Pack your favorite foods and enjoy outdoors" },
-  { title: "Game Night", description: "Play board games or video games together" },
-  { title: "Adventure Walk", description: "Explore a new neighborhood or trail" },
-];
 
 export default function PlanScreen() {
   const insets = useSafeAreaInsets();
@@ -87,23 +79,6 @@ export default function PlanScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await loadData();
     setIsRefreshing(false);
-  }
-
-  async function handleSaveDateNight(suggestion: typeof dateNightSuggestions[0]) {
-    if (!profile?.couple_id) return;
-    
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try {
-      await createDateNight({
-        couple_id: profile.couple_id,
-        title: suggestion.title,
-        description: suggestion.description,
-        is_saved: true,
-      });
-      await loadData();
-    } catch (err) {
-      console.error("Error saving date night:", err);
-    }
   }
 
   async function handleToggleRitual(id: string, isActive: boolean) {
@@ -207,37 +182,28 @@ export default function PlanScreen() {
 
         {activeTab === "dates" ? (
           <>
-            <ThemedText type="h4" style={styles.sectionTitle}>
-              Ideas for You
-            </ThemedText>
-            {dateNightSuggestions.map((suggestion, index) => (
-              <Card key={index} elevation={1} style={styles.suggestionCard}>
-                <View style={styles.suggestionContent}>
-                  <View style={styles.suggestionText}>
-                    <ThemedText type="h4">{suggestion.title}</ThemedText>
-                    <ThemedText
-                      type="small"
-                      style={{ color: theme.textSecondary }}
-                    >
-                      {suggestion.description}
-                    </ThemedText>
-                  </View>
-                  <Pressable
-                    style={[
-                      styles.saveButton,
-                      { backgroundColor: Colors.light.accent + "20" },
-                    ]}
-                    onPress={() => handleSaveDateNight(suggestion)}
-                  >
-                    <Feather
-                      name="bookmark"
-                      size={20}
-                      color={Colors.light.accent}
-                    />
-                  </Pressable>
+            <Pressable
+              style={[styles.generatorCard, { backgroundColor: theme.link }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                navigation.navigate("DateNight");
+              }}
+            >
+              <View style={styles.generatorContent}>
+                <View style={styles.generatorIcon}>
+                  <Feather name="zap" size={24} color="#FFFFFF" />
                 </View>
-              </Card>
-            ))}
+                <View style={styles.generatorText}>
+                  <ThemedText type="h4" style={{ color: "#FFFFFF" }}>
+                    Date Night Generator
+                  </ThemedText>
+                  <ThemedText type="small" style={{ color: "rgba(255,255,255,0.8)" }}>
+                    Get AI-powered date ideas tailored to you
+                  </ThemedText>
+                </View>
+                <Feather name="chevron-right" size={20} color="#FFFFFF" />
+              </View>
+            </Pressable>
 
             {dateNights.length > 0 ? (
               <>
@@ -364,24 +330,26 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: Spacing.lg,
   },
-  suggestionCard: {
+  generatorCard: {
     padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xl,
   },
-  suggestionContent: {
+  generatorContent: {
     flexDirection: "row",
     alignItems: "center",
   },
-  suggestionText: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  saveButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  generatorIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
+    marginRight: Spacing.md,
+  },
+  generatorText: {
+    flex: 1,
   },
   dateCard: {
     padding: Spacing.lg,

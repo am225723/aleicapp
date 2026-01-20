@@ -38,6 +38,7 @@ import ParentingPartnersScreen from "@/screens/tools/ParentingPartnersScreen";
 import FinancialToolkitScreen from "@/screens/tools/FinancialToolkitScreen";
 import ValuesVisionScreen from "@/screens/tools/ValuesVisionScreen";
 import TherapistMessagesScreen from "@/screens/therapist/TherapistMessagesScreen";
+import DateNightScreen from "@/screens/couple/DateNightScreen";
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -71,6 +72,7 @@ export type RootStackParamList = {
   FinancialToolkit: undefined;
   ValuesVision: undefined;
   TherapistMessages: undefined;
+  DateNight: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -280,6 +282,11 @@ export default function RootStackNavigator() {
             name="ValuesVision"
             component={ValuesVisionScreen}
             options={{ headerTitle: "Values & Vision" }}
+          />
+          <Stack.Screen
+            name="DateNight"
+            component={DateNightScreen}
+            options={{ headerTitle: "Date Night Generator" }}
           />
         </>
       )}
