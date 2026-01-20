@@ -271,7 +271,7 @@ export default function CalendarScreen() {
           {pastEvents.slice(0, 5).map((event) => (
             <Card
               key={event.id}
-              style={[styles.eventCard, { opacity: 0.7 }]}
+              style={{ ...styles.eventCard, opacity: 0.7 }}
             >
               <View style={styles.eventHeader}>
                 <View

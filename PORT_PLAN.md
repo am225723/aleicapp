@@ -2,7 +2,13 @@
 
 ## Executive Summary
 
-**Status: COMPLETE** - All modules from couplestherapy-main have been ported to ALEIC with full Supabase persistence.
+**Status: UI COMPLETE** - All screens from couplestherapy-main have been ported to ALEIC.
+
+**Data Persistence Status:**
+- **New Tool Screens (14)**: Supabase tables with RLS policies
+- **Core Screens (Gratitude, Journal, Rituals)**: AsyncStorage (local device)
+- **Calendar**: API-backed (requires server routes)
+- **Interactive Tools (Pause, Echo, HoldMeTight, etc.)**: No persistence needed
 
 Last Updated: January 2026
 
@@ -169,15 +175,25 @@ SESSION_SECRET (secret)
 
 ## 8. Remaining Work
 
-**None** - All modules have been ported and are fully functional.
-
-### Final Verification
-- [x] 39 screens implemented
-- [x] All navigation routes wired
-- [x] All Supabase tables created with RLS
+### Completed
+- [x] 39 screens implemented and wired into navigation
+- [x] 14 new tool screens with Supabase persistence
 - [x] Voice Memos with audio recording + Storage
 - [x] Shared Goals with Kanban tracking
-- [x] All assessments functional
-- [x] All deep work tools functional
-- [x] Therapist Messages with realtime
+- [x] All assessments functional (Attachment, Enneagram, Love Map)
+- [x] All deep work tools functional (IFS, Intimacy, Values)
+- [x] Therapist Messages with realtime subscriptions
 - [x] App builds without errors
+
+### Future Enhancements (Optional)
+To migrate remaining screens from AsyncStorage to Supabase:
+
+| Screen | Current Storage | Target Supabase Table |
+|--------|-----------------|----------------------|
+| Gratitude | AsyncStorage | `Couples_gratitude_logs` |
+| Journal | AsyncStorage | `Couples_journal_entries` |
+| Rituals | AsyncStorage | `Couples_rituals` |
+| Weekly Check-ins | AsyncStorage | `Couples_weekly_checkins` |
+| Calendar | API (no server routes) | `Couples_calendar_events` |
+
+These tables exist in the reference schema but screens currently use local storage for simplicity. Migration would enable cross-device sync and therapist visibility.
