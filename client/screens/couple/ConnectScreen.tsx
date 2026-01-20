@@ -6,6 +6,7 @@ import {
   RefreshControl,
   Pressable,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -19,12 +20,15 @@ import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { useAuth } from "@/contexts/AuthContext";
 import {
-  getGratitudeEntries,
-  getJournalEntries,
-  GratitudeEntry,
+  listGratitudeLogs,
+  GratitudeLog,
+} from "@/services/gratitudeService";
+import {
+  listJournalEntries,
   JournalEntry,
-} from "@/lib/storage";
+} from "@/services/journalService";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -32,27 +36,41 @@ export default function ConnectScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
+  const { profile } = useAuth();
 
-  const [gratitudeEntries, setGratitudeEntries] = useState<GratitudeEntry[]>(
-    []
-  );
+  const [gratitudeEntries, setGratitudeEntries] = useState<GratitudeLog[]>([]);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"gratitude" | "journal">(
     "gratitude"
   );
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [profile?.couple_id]);
 
   async function loadData() {
-    const [gratitude, journal] = await Promise.all([
-      getGratitudeEntries(),
-      getJournalEntries(),
-    ]);
-    setGratitudeEntries(gratitude);
-    setJournalEntries(journal);
+    if (!profile?.couple_id) {
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      setError(null);
+      const [gratitude, journal] = await Promise.all([
+        listGratitudeLogs(profile.couple_id),
+        listJournalEntries(profile.couple_id),
+      ]);
+      setGratitudeEntries(gratitude);
+      setJournalEntries(journal);
+    } catch (err) {
+      console.error("Error loading data:", err);
+      setError("Failed to load entries. Pull to refresh.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function handleRefresh() {
@@ -71,6 +89,17 @@ export default function ConnectScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate("AddJournal");
   };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: theme.backgroundRoot }]}>
+        <ActivityIndicator size="large" color={Colors.light.link} />
+        <ThemedText type="body" style={{ marginTop: Spacing.md, color: theme.textSecondary }}>
+          Loading entries...
+        </ThemedText>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
@@ -140,14 +169,23 @@ export default function ConnectScreen() {
           <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
         }
       >
+        {error ? (
+          <Card elevation={1} style={styles.errorCard}>
+            <Feather name="alert-circle" size={24} color={Colors.light.error} />
+            <ThemedText type="body" style={{ color: Colors.light.error, marginTop: Spacing.sm }}>
+              {error}
+            </ThemedText>
+          </Card>
+        ) : null}
+
         {activeTab === "gratitude" ? (
           gratitudeEntries.length > 0 ? (
             gratitudeEntries.map((entry) => (
               <Card key={entry.id} elevation={1} style={styles.entryCard}>
                 <ThemedText type="body">{entry.content}</ThemedText>
-                {entry.imageUri ? (
+                {entry.image_url ? (
                   <Image
-                    source={{ uri: entry.imageUri }}
+                    source={{ uri: entry.image_url }}
                     style={styles.entryImage}
                   />
                 ) : null}
@@ -156,13 +194,7 @@ export default function ConnectScreen() {
                     type="small"
                     style={{ color: theme.textSecondary }}
                   >
-                    {entry.authorName}
-                  </ThemedText>
-                  <ThemedText
-                    type="small"
-                    style={{ color: theme.textSecondary }}
-                  >
-                    {new Date(entry.createdAt).toLocaleDateString()}
+                    {new Date(entry.created_at).toLocaleDateString()}
                   </ThemedText>
                 </View>
               </Card>
@@ -187,9 +219,9 @@ export default function ConnectScreen() {
               >
                 {entry.content}
               </ThemedText>
-              {entry.imageUri ? (
+              {entry.image_url ? (
                 <Image
-                  source={{ uri: entry.imageUri }}
+                  source={{ uri: entry.image_url }}
                   style={styles.entryImage}
                 />
               ) : null}
@@ -198,13 +230,7 @@ export default function ConnectScreen() {
                   type="small"
                   style={{ color: theme.textSecondary }}
                 >
-                  {entry.authorName}
-                </ThemedText>
-                <ThemedText
-                  type="small"
-                  style={{ color: theme.textSecondary }}
-                >
-                  {new Date(entry.createdAt).toLocaleDateString()}
+                  {new Date(entry.created_at).toLocaleDateString()}
                 </ThemedText>
               </View>
             </Card>
@@ -231,6 +257,10 @@ export default function ConnectScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
     paddingHorizontal: Spacing.lg,
@@ -260,6 +290,11 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     flexGrow: 1,
   },
+  errorCard: {
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    alignItems: "center",
+  },
   entryCard: {
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -275,7 +310,7 @@ const styles = StyleSheet.create({
   },
   entryMeta: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     marginTop: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,

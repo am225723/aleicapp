@@ -14,7 +14,8 @@ import { Input } from "@/components/Input";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors, BorderRadius } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
-import { addWeeklyCheckin, addToolEntry } from "@/lib/storage";
+import { createWeeklyCheckin } from "@/services/weeklyCheckinsService";
+import { createToolEntry } from "@/services/toolEntriesService";
 
 export default function WeeklyCheckinScreen() {
   const insets = useSafeAreaInsets();
@@ -28,31 +29,38 @@ export default function WeeklyCheckinScreen() {
   const [intimacyRating, setIntimacyRating] = useState(5);
   const [notes, setNotes] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
+    if (!profile?.couple_id) {
+      setError("You must be part of a couple to submit check-ins.");
+      return;
+    }
+
     setIsLoading(true);
+    setError(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      await addWeeklyCheckin({
-        coupleId: profile?.couple_id || "couple-1",
-        authorId: profile?.id || "user-1",
-        authorName: profile?.full_name || "You",
-        connectionRating,
-        communicationRating,
-        intimacyRating,
-        notes,
+      await createWeeklyCheckin({
+        couple_id: profile.couple_id,
+        connection_rating: connectionRating,
+        communication_rating: communicationRating,
+        intimacy_rating: intimacyRating,
+        notes: notes.trim() || undefined,
       });
 
-      await addToolEntry({
-        coupleId: "couple-1",
-        toolType: "checkin",
+      await createToolEntry({
+        couple_id: profile.couple_id,
+        tool_type: "checkin",
         payload: { connectionRating, communicationRating, intimacyRating },
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigation.goBack();
-    } catch (error) {
+    } catch (err) {
+      console.error("Error submitting check-in:", err);
+      setError("Failed to submit. Please try again.");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
@@ -94,6 +102,14 @@ export default function WeeklyCheckinScreen() {
           How has your connection been this week?
         </ThemedText>
       </View>
+
+      {error ? (
+        <View style={[styles.errorContainer, { backgroundColor: Colors.light.error + "20" }]}>
+          <ThemedText type="small" style={{ color: Colors.light.error }}>
+            {error}
+          </ThemedText>
+        </View>
+      ) : null}
 
       <View style={styles.sliderSection}>
         <View style={styles.sliderHeader}>
@@ -228,6 +244,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginTop: Spacing.sm,
+  },
+  errorContainer: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.md,
   },
   sliderSection: {
     marginBottom: Spacing["2xl"],

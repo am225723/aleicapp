@@ -11,7 +11,8 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors, BorderRadius } from "@/constants/theme";
-import { addRitual } from "@/lib/storage";
+import { useAuth } from "@/contexts/AuthContext";
+import { createRitual } from "@/services/ritualsService";
 
 type Frequency = "daily" | "weekly" | "monthly";
 
@@ -20,30 +21,38 @@ export default function AddRitualScreen() {
   const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const navigation = useNavigation();
+  const { profile } = useAuth();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("daily");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (!title.trim()) return;
+    if (!profile?.couple_id) {
+      setError("You must be part of a couple to create rituals.");
+      return;
+    }
 
     setIsLoading(true);
+    setError(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
-      await addRitual({
-        coupleId: "couple-1",
+      await createRitual({
+        couple_id: profile.couple_id,
         title: title.trim(),
         description: description.trim(),
         frequency,
-        isActive: true,
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigation.goBack();
-    } catch (error) {
+    } catch (err) {
+      console.error("Error creating ritual:", err);
+      setError("Failed to create ritual. Please try again.");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
@@ -76,6 +85,14 @@ export default function AddRitualScreen() {
           Build meaningful daily habits together
         </ThemedText>
       </View>
+
+      {error ? (
+        <View style={[styles.errorContainer, { backgroundColor: Colors.light.error + "20" }]}>
+          <ThemedText type="small" style={{ color: Colors.light.error }}>
+            {error}
+          </ThemedText>
+        </View>
+      ) : null}
 
       <Input
         label="Ritual Name"
@@ -152,6 +169,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginTop: Spacing.sm,
+  },
+  errorContainer: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.md,
   },
   textArea: {
     height: 100,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, ScrollView } from "react-native";
+import { StyleSheet, View, ScrollView, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useRoute, RouteProp } from "@react-navigation/native";
@@ -11,11 +11,13 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
-  getToolEntries,
-  getWeeklyCheckins,
+  listToolEntries,
   ToolEntry,
+} from "@/services/toolEntriesService";
+import {
+  listWeeklyCheckins,
   WeeklyCheckin,
-} from "@/lib/storage";
+} from "@/services/weeklyCheckinsService";
 
 type RouteProps = RouteProp<RootStackParamList, "CoupleDetail">;
 
@@ -27,42 +29,60 @@ export default function CoupleDetailScreen() {
 
   const [toolEntries, setToolEntries] = useState<ToolEntry[]>([]);
   const [checkins, setCheckins] = useState<WeeklyCheckin[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [route.params.coupleId]);
 
   async function loadData() {
-    const [entries, checkinsData] = await Promise.all([
-      getToolEntries(route.params.coupleId),
-      getWeeklyCheckins(route.params.coupleId),
-    ]);
-    setToolEntries(entries);
-    setCheckins(checkinsData);
+    try {
+      setError(null);
+      const [entries, checkinsData] = await Promise.all([
+        listToolEntries(route.params.coupleId),
+        listWeeklyCheckins(route.params.coupleId),
+      ]);
+      setToolEntries(entries);
+      setCheckins(checkinsData);
+    } catch (err) {
+      console.error("Error loading couple data:", err);
+      setError("Failed to load data");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const recentCheckins = checkins.slice(0, 4);
   const averageRatings = recentCheckins.length > 0 ? {
     connection: Math.round(
-      recentCheckins.reduce((sum, c) => sum + c.connectionRating, 0) /
+      recentCheckins.reduce((sum, c) => sum + c.connection_rating, 0) /
         recentCheckins.length
     ),
     communication: Math.round(
-      recentCheckins.reduce((sum, c) => sum + c.communicationRating, 0) /
+      recentCheckins.reduce((sum, c) => sum + c.communication_rating, 0) /
         recentCheckins.length
     ),
     intimacy: Math.round(
-      recentCheckins.reduce((sum, c) => sum + c.intimacyRating, 0) /
+      recentCheckins.reduce((sum, c) => sum + c.intimacy_rating, 0) /
         recentCheckins.length
     ),
   } : null;
 
   const toolUsage = {
-    pause: toolEntries.filter((e) => e.toolType === "pause").length,
-    echo: toolEntries.filter((e) => e.toolType === "echo").length,
-    holdme: toolEntries.filter((e) => e.toolType === "holdme").length,
-    checkin: toolEntries.filter((e) => e.toolType === "checkin").length,
+    pause: toolEntries.filter((e) => e.tool_type === "pause").length,
+    echo: toolEntries.filter((e) => e.tool_type === "echo").length,
+    holdme: toolEntries.filter((e) => e.tool_type === "holdme").length,
+    checkin: toolEntries.filter((e) => e.tool_type === "checkin").length,
   };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: theme.backgroundRoot }]}>
+        <ActivityIndicator size="large" color={Colors.light.link} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -75,6 +95,15 @@ export default function CoupleDetailScreen() {
         },
       ]}
     >
+      {error ? (
+        <Card elevation={1} style={styles.errorCard}>
+          <Feather name="alert-circle" size={24} color={Colors.light.error} />
+          <ThemedText type="body" style={{ color: Colors.light.error, marginTop: Spacing.sm }}>
+            {error}
+          </ThemedText>
+        </Card>
+      ) : null}
+
       <Card elevation={1} style={styles.summaryCard}>
         <ThemedText type="h4" style={styles.cardTitle}>
           Session Prep Summary
@@ -220,11 +249,11 @@ export default function CoupleDetailScreen() {
             <View style={styles.activityRow}>
               <Feather
                 name={
-                  entry.toolType === "pause"
+                  entry.tool_type === "pause"
                     ? "pause-circle"
-                    : entry.toolType === "echo"
+                    : entry.tool_type === "echo"
                       ? "message-circle"
-                      : entry.toolType === "holdme"
+                      : entry.tool_type === "holdme"
                         ? "heart"
                         : "bar-chart-2"
                 }
@@ -232,16 +261,16 @@ export default function CoupleDetailScreen() {
                 color={Colors.light.link}
               />
               <ThemedText type="body" style={styles.activityText}>
-                {entry.toolType === "pause"
+                {entry.tool_type === "pause"
                   ? "Pause Button"
-                  : entry.toolType === "echo"
+                  : entry.tool_type === "echo"
                     ? "Echo & Empathy"
-                    : entry.toolType === "holdme"
+                    : entry.tool_type === "holdme"
                       ? "Hold Me Tight"
                       : "Weekly Check-in"}
               </ThemedText>
               <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                {new Date(entry.createdAt).toLocaleDateString()}
+                {new Date(entry.created_at).toLocaleDateString()}
               </ThemedText>
             </View>
           </Card>
@@ -280,8 +309,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
   content: {
     paddingHorizontal: Spacing.lg,
+  },
+  errorCard: {
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    alignItems: "center",
   },
   summaryCard: {
     padding: Spacing.xl,
@@ -323,12 +361,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   toolIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   activityCard: {
     padding: Spacing.md,
@@ -337,17 +375,17 @@ const styles = StyleSheet.create({
   activityRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
   },
   activityText: {
     flex: 1,
+    marginLeft: Spacing.md,
   },
   emptyCard: {
-    padding: Spacing.xl,
+    padding: Spacing.lg,
   },
   noteCard: {
     padding: Spacing.lg,
-    backgroundColor: Colors.light.warning + "10",
+    marginTop: Spacing.lg,
   },
   noteHeader: {
     flexDirection: "row",

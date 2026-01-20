@@ -6,6 +6,7 @@ import {
   RefreshControl,
   Pressable,
   Switch,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -19,14 +20,17 @@ import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { useAuth } from "@/contexts/AuthContext";
 import {
-  getDateNights,
-  getRituals,
-  addDateNight,
-  updateRitual,
+  listDateNights,
+  createDateNight,
   DateNight,
+} from "@/services/dateNightsService";
+import {
+  listRituals,
+  updateRitual,
   Ritual,
-} from "@/lib/storage";
+} from "@/services/ritualsService";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -43,20 +47,39 @@ export default function PlanScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
+  const { profile } = useAuth();
 
   const [dateNights, setDateNights] = useState<DateNight[]>([]);
   const [rituals, setRituals] = useState<Ritual[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"dates" | "rituals">("dates");
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [profile?.couple_id]);
 
   async function loadData() {
-    const [dates, rits] = await Promise.all([getDateNights(), getRituals()]);
-    setDateNights(dates);
-    setRituals(rits);
+    if (!profile?.couple_id) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setError(null);
+      const [dates, rits] = await Promise.all([
+        listDateNights(profile.couple_id),
+        listRituals(profile.couple_id),
+      ]);
+      setDateNights(dates);
+      setRituals(rits);
+    } catch (err) {
+      console.error("Error loading data:", err);
+      setError("Failed to load. Pull to refresh.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function handleRefresh() {
@@ -67,26 +90,44 @@ export default function PlanScreen() {
   }
 
   async function handleSaveDateNight(suggestion: typeof dateNightSuggestions[0]) {
+    if (!profile?.couple_id) return;
+    
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await addDateNight({
-      coupleId: "couple-1",
-      title: suggestion.title,
-      description: suggestion.description,
-      isSaved: true,
-    });
-    await loadData();
+    try {
+      await createDateNight({
+        couple_id: profile.couple_id,
+        title: suggestion.title,
+        description: suggestion.description,
+        is_saved: true,
+      });
+      await loadData();
+    } catch (err) {
+      console.error("Error saving date night:", err);
+    }
   }
 
   async function handleToggleRitual(id: string, isActive: boolean) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await updateRitual(id, { isActive });
-    await loadData();
+    try {
+      await updateRitual(id, { is_active: isActive });
+      await loadData();
+    } catch (err) {
+      console.error("Error updating ritual:", err);
+    }
   }
 
   const handleAddRitual = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate("AddRitual");
   };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: theme.backgroundRoot }]}>
+        <ActivityIndicator size="large" color={Colors.light.link} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
@@ -155,6 +196,15 @@ export default function PlanScreen() {
           <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
         }
       >
+        {error ? (
+          <Card elevation={1} style={styles.errorCard}>
+            <Feather name="alert-circle" size={24} color={Colors.light.error} />
+            <ThemedText type="body" style={{ color: Colors.light.error, marginTop: Spacing.sm }}>
+              {error}
+            </ThemedText>
+          </Card>
+        ) : null}
+
         {activeTab === "dates" ? (
           <>
             <ThemedText type="h4" style={styles.sectionTitle}>
@@ -237,7 +287,7 @@ export default function PlanScreen() {
                   </View>
                 </View>
                 <Switch
-                  value={ritual.isActive}
+                  value={ritual.is_active}
                   onValueChange={(value) =>
                     handleToggleRitual(ritual.id, value)
                   }
@@ -274,6 +324,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
@@ -301,6 +355,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     flexGrow: 1,
+  },
+  errorCard: {
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    alignItems: "center",
   },
   sectionTitle: {
     marginBottom: Spacing.lg,

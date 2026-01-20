@@ -1,67 +1,109 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
   TextInput,
   Pressable,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { Spacing, BorderRadius, Typography } from "@/constants/theme";
-import { CalendarEvent } from "@/types";
-import { apiRequest } from "@/lib/query-client";
+import { Spacing, BorderRadius, Colors } from "@/constants/theme";
+import {
+  listCalendarEvents,
+  createCalendarEvent,
+  CalendarEvent,
+} from "@/services/calendarService";
 
 export default function CalendarScreen() {
   const { profile } = useAuth();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
-  const queryClient = useQueryClient();
 
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const { data: events = [], isLoading } = useQuery<CalendarEvent[]>({
-    queryKey: ["/api/calendar", profile?.couple_id],
-    enabled: !!profile?.couple_id,
-  });
+  useEffect(() => {
+    loadEvents();
+  }, [profile?.couple_id]);
 
-  const addEventMutation = useMutation({
-    mutationFn: async (data: {
-      title: string;
-      description?: string;
-      location?: string;
-    }) => {
+  async function loadEvents() {
+    if (!profile?.couple_id) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setError(null);
+      const data = await listCalendarEvents(profile.couple_id);
+      setEvents(data);
+    } catch (err) {
+      console.error("Error loading events:", err);
+      setError("Failed to load events");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleRefresh() {
+    setIsRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await loadEvents();
+    setIsRefreshing(false);
+  }
+
+  async function handleAddEvent() {
+    if (!title.trim() || !profile?.couple_id) return;
+
+    setIsSaving(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
       const now = new Date();
       const startTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
       const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
-      return apiRequest("POST", "/api/calendar", {
-        ...data,
+
+      await createCalendarEvent({
+        couple_id: profile.couple_id,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        location: location.trim() || undefined,
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
       });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["/api/calendar", profile?.couple_id],
-      });
+
       setShowAddForm(false);
       setTitle("");
       setDescription("");
       setLocation("");
-    },
-  });
+      await loadEvents();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err) {
+      console.error("Error creating event:", err);
+      setError("Failed to create event");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   const upcomingEvents = events
     .filter((event) => new Date(event.start_time) > new Date())
@@ -91,6 +133,14 @@ export default function CalendarScreen() {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: theme.backgroundRoot }]}>
+        <ActivityIndicator size="large" color={Colors.light.link} />
+      </View>
+    );
+  }
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
@@ -101,6 +151,9 @@ export default function CalendarScreen() {
           paddingBottom: insets.bottom + Spacing.xl,
         },
       ]}
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+      }
     >
       <View style={styles.header}>
         <ThemedText type="h2">Shared Calendar</ThemedText>
@@ -123,72 +176,91 @@ export default function CalendarScreen() {
         Plan dates and special moments together
       </ThemedText>
 
+      {error ? (
+        <Card elevation={1} style={styles.errorCard}>
+          <Feather name="alert-circle" size={24} color={Colors.light.error} />
+          <ThemedText type="body" style={{ color: Colors.light.error, marginTop: Spacing.sm }}>
+            {error}
+          </ThemedText>
+        </Card>
+      ) : null}
+
       {showAddForm ? (
         <Card style={styles.formCard}>
-          <ThemedText type="h4" style={{ marginBottom: Spacing.md }}>
-            Add New Event
+          <ThemedText type="h4" style={styles.formTitle}>
+            Add Event
           </ThemedText>
 
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
-                color: theme.text,
-              },
-            ]}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Event title"
-            placeholderTextColor={theme.textSecondary}
-          />
+          <View style={styles.inputContainer}>
+            <ThemedText type="small" style={styles.inputLabel}>
+              Title
+            </ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.backgroundDefault,
+                  color: theme.text,
+                  borderColor: theme.border,
+                },
+              ]}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Event title"
+              placeholderTextColor={theme.textSecondary}
+            />
+          </View>
 
-          <TextInput
-            style={[
-              styles.input,
-              styles.textArea,
-              {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
-                color: theme.text,
-              },
-            ]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Description (optional)"
-            placeholderTextColor={theme.textSecondary}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
+          <View style={styles.inputContainer}>
+            <ThemedText type="small" style={styles.inputLabel}>
+              Description (optional)
+            </ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: theme.backgroundDefault,
+                  color: theme.text,
+                  borderColor: theme.border,
+                },
+              ]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Add details..."
+              placeholderTextColor={theme.textSecondary}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+          </View>
 
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.border,
-                color: theme.text,
-              },
-            ]}
-            value={location}
-            onChangeText={setLocation}
-            placeholder="Location (optional)"
-            placeholderTextColor={theme.textSecondary}
-          />
+          <View style={styles.inputContainer}>
+            <ThemedText type="small" style={styles.inputLabel}>
+              Location (optional)
+            </ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.backgroundDefault,
+                  color: theme.text,
+                  borderColor: theme.border,
+                },
+              ]}
+              value={location}
+              onChangeText={setLocation}
+              placeholder="Where?"
+              placeholderTextColor={theme.textSecondary}
+            />
+          </View>
 
           <Button
-            onPress={() =>
-              addEventMutation.mutate({
-                title,
-                description: description || undefined,
-                location: location || undefined,
-              })
-            }
-            disabled={!title.trim() || addEventMutation.isPending}
+            onPress={handleAddEvent}
+            disabled={!title.trim() || isSaving}
+            style={styles.submitButton}
           >
-            Add Event
+            {isSaving ? "Creating..." : "Create Event"}
           </Button>
         </Card>
       ) : null}
@@ -208,10 +280,20 @@ export default function CalendarScreen() {
                     { backgroundColor: theme.link + "20" },
                   ]}
                 >
-                  <Feather name="calendar" size={20} color={theme.link} />
+                  <ThemedText type="small" style={{ color: theme.link }}>
+                    {new Date(event.start_time).getDate()}
+                  </ThemedText>
+                  <ThemedText
+                    type="small"
+                    style={{ color: theme.link, fontSize: 10 }}
+                  >
+                    {new Date(event.start_time).toLocaleDateString(undefined, {
+                      month: "short",
+                    })}
+                  </ThemedText>
                 </View>
                 <View style={styles.eventInfo}>
-                  <ThemedText type="h4">{event.title}</ThemedText>
+                  <ThemedText type="body">{event.title}</ThemedText>
                   <ThemedText
                     type="small"
                     style={{ color: theme.textSecondary }}
@@ -222,7 +304,13 @@ export default function CalendarScreen() {
                 </View>
               </View>
               {event.description ? (
-                <ThemedText type="body" style={{ marginTop: Spacing.sm }}>
+                <ThemedText
+                  type="small"
+                  style={{
+                    color: theme.textSecondary,
+                    marginTop: Spacing.sm,
+                  }}
+                >
                   {event.description}
                 </ThemedText>
               ) : null}
@@ -230,12 +318,12 @@ export default function CalendarScreen() {
                 <View style={styles.locationRow}>
                   <Feather
                     name="map-pin"
-                    size={14}
+                    size={12}
                     color={theme.textSecondary}
                   />
                   <ThemedText
                     type="small"
-                    style={{ color: theme.textSecondary, marginLeft: Spacing.xs }}
+                    style={{ color: theme.textSecondary, marginLeft: 4 }}
                   >
                     {event.location}
                   </ThemedText>
@@ -308,6 +396,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
   content: {
     padding: Spacing.lg,
   },
@@ -315,7 +407,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   addButton: {
     width: 40,
@@ -324,24 +416,42 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  errorCard: {
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    alignItems: "center",
+  },
   formCard: {
+    padding: Spacing.lg,
     marginBottom: Spacing.xl,
   },
-  input: {
-    ...Typography.body,
-    borderWidth: 1,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+  formTitle: {
+    marginBottom: Spacing.lg,
+  },
+  inputContainer: {
     marginBottom: Spacing.md,
+  },
+  inputLabel: {
+    marginBottom: Spacing.xs,
+    fontWeight: "600",
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.md,
+    fontSize: 16,
   },
   textArea: {
     minHeight: 80,
+  },
+  submitButton: {
+    marginTop: Spacing.md,
   },
   section: {
     marginBottom: Spacing.xl,
   },
   eventCard: {
+    padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
   eventHeader: {
@@ -349,9 +459,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dateCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.md,
@@ -365,7 +475,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   emptyState: {
+    padding: Spacing.xl,
     alignItems: "center",
-    paddingVertical: Spacing["2xl"],
   },
 });

@@ -14,7 +14,7 @@ import { Input } from "@/components/Input";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors, BorderRadius } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
-import { addGratitudeEntry } from "@/lib/storage";
+import { createGratitudeLog } from "@/services/gratitudeService";
 
 export default function AddGratitudeScreen() {
   const insets = useSafeAreaInsets();
@@ -26,6 +26,7 @@ export default function AddGratitudeScreen() {
   const [content, setContent] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -43,22 +44,27 @@ export default function AddGratitudeScreen() {
 
   const handleSave = async () => {
     if (!content.trim()) return;
+    if (!profile?.couple_id) {
+      setError("You must be part of a couple to save gratitude entries.");
+      return;
+    }
 
     setIsLoading(true);
+    setError(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
-      await addGratitudeEntry({
-        coupleId: profile?.couple_id || "couple-1",
+      await createGratitudeLog({
+        couple_id: profile.couple_id,
         content: content.trim(),
-        imageUri: imageUri || undefined,
-        authorId: profile?.id || "user-1",
-        authorName: profile?.full_name || "You",
+        image_url: imageUri || undefined,
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigation.goBack();
-    } catch (error) {
+    } catch (err) {
+      console.error("Error saving gratitude:", err);
+      setError("Failed to save. Please try again.");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
@@ -85,6 +91,14 @@ export default function AddGratitudeScreen() {
           Share something you appreciate about your partner or relationship
         </ThemedText>
       </View>
+
+      {error ? (
+        <View style={[styles.errorContainer, { backgroundColor: Colors.light.error + "20" }]}>
+          <ThemedText type="small" style={{ color: Colors.light.error }}>
+            {error}
+          </ThemedText>
+        </View>
+      ) : null}
 
       <Input
         placeholder="I'm grateful for..."
@@ -142,6 +156,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginTop: Spacing.sm,
+  },
+  errorContainer: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.md,
   },
   textArea: {
     height: 120,
