@@ -19,8 +19,9 @@ A native mobile app built with Expo React Native for couples therapy, featuring 
 
 ### Data Storage
 - **Authentication**: expo-secure-store (native) / AsyncStorage (web)
-- **App Data**: AsyncStorage for local persistence
-- **Types**: Stored in `client/lib/storage.ts`
+- **App Data**: Supabase cloud database (migrated from AsyncStorage)
+- **Services**: `client/services/` directory contains domain-specific Supabase service modules
+- **Local Only**: `client/lib/storage.ts` - minimal therapist mock data (couples, invites)
 
 ## Key Features
 
@@ -53,8 +54,17 @@ client/
 ├── contexts/AuthContext.tsx # Authentication state
 ├── lib/
 │   ├── auth.ts             # Secure token storage
-│   ├── storage.ts          # AsyncStorage CRUD operations
+│   ├── storage.ts          # Minimal local storage (therapist mock data only)
 │   └── query-client.ts     # React Query config
+├── services/               # Supabase service modules
+│   ├── gratitudeService.ts     # Gratitude logs CRUD
+│   ├── journalService.ts       # Journal entries CRUD
+│   ├── ritualsService.ts       # Rituals CRUD
+│   ├── dateNightsService.ts    # Date nights CRUD
+│   ├── weeklyCheckinsService.ts # Weekly check-ins CRUD
+│   ├── calendarService.ts      # Calendar events CRUD
+│   ├── toolEntriesService.ts   # Tool usage tracking CRUD
+│   └── index.ts               # Re-exports all services
 ├── navigation/
 │   ├── RootStackNavigator.tsx    # Main navigation
 │   ├── AuthStackNavigator.tsx    # Login/signup flows
@@ -92,7 +102,18 @@ client/
 3. **Test**: Scan QR code with Expo Go or open web at localhost:8081
 
 ## Supabase Database Tables
-The app uses Supabase for data persistence with the following module tables:
+The app uses Supabase for data persistence with the following tables:
+
+### Core Couple Data Tables (Couples_* naming convention)
+- `Couples_gratitude_logs` - Gratitude entries with optional images
+- `Couples_journal_entries` - Journal entries with titles and images
+- `Couples_rituals` - Recurring rituals with frequency tracking
+- `Couples_date_nights` - Saved date night ideas
+- `Couples_weekly_checkins` - Weekly connection/communication/intimacy ratings
+- `Couples_calendar_events` - Shared calendar events
+- `Couples_tool_entries` - Tool usage tracking for analytics
+
+### Additional Module Tables
 - `voice_memos` - Audio recordings with Supabase Storage
 - `shared_goals` - Couple goal tracking (Kanban-style)
 - `demon_dialogues` - EFT negative cycle patterns
@@ -107,9 +128,15 @@ The app uses Supabase for data persistence with the following module tables:
 - `values_vision` - Shared values and vision entries
 - `therapist_messages` - Therapist-couple messaging
 
-All tables have RLS policies for proper data isolation.
+All tables have RLS policies for proper data isolation by couple_id.
 
 ## Recent Changes
+- January 2026: Migrated core features from AsyncStorage to Supabase
+  - Created 7 new Couples_* tables with RLS policies
+  - Built dedicated service modules in client/services/
+  - Updated all screens to use Supabase services with proper error handling
+  - Cleaned up storage.ts, keeping only therapist mock data functions
+  - Added loading states, error handling, and pull-to-refresh to all screens
 - January 2026: Major feature expansion
   - Added 14 new relationship tools with Supabase persistence
   - Voice Memos with audio recording, Storage upload, and playback
