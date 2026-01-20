@@ -132,6 +132,13 @@ The app uses Supabase for data persistence with the following tables:
 All tables have RLS policies for proper data isolation by couple_id.
 
 ## Recent Changes
+- January 2026: Updated widget design and category screens
+  - Enhanced GlowWidget component with action buttons, preview items, and status text
+  - Added CategoryHeroCard component for gradient hero graphics at top of screens
+  - All 4 category screens (Calm, Connect, Discover, Plan) now have hero graphics
+  - Real-time data integration: widgets show counts, completion status, and previews
+  - Pull-to-refresh on all category screens
+  - Quiz results display on Discover screen (Love Language, Attachment, Enneagram, Love Map)
 - January 2026: Enhanced assessment results pages
   - Love Language Quiz: 30 forced-choice questions with detailed results page
   - All assessments now use direct Supabase storage with consistent table structure
