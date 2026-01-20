@@ -36,6 +36,29 @@ const INTERESTS = [
   { id: "home", emoji: "home", label: "At-Home Fun" },
 ];
 
+const PRICE_OPTIONS = [
+  { id: "free", label: "Free" },
+  { id: "budget", label: "$" },
+  { id: "moderate", label: "$$" },
+  { id: "splurge", label: "$$$" },
+  { id: "any", label: "Any" },
+];
+
+const ENERGY_OPTIONS = [
+  { id: "low", label: "Low" },
+  { id: "medium", label: "Medium" },
+  { id: "high", label: "High" },
+  { id: "any", label: "Any" },
+];
+
+const TIME_OPTIONS = [
+  { id: "morning", label: "Morning" },
+  { id: "afternoon", label: "Afternoon" },
+  { id: "evening", label: "Evening" },
+  { id: "night", label: "Night" },
+  { id: "any", label: "Any" },
+];
+
 interface DateIdea {
   title: string;
   description: string;
@@ -45,30 +68,40 @@ interface DateIdea {
 
 function parseIdeasFromResponse(content: string): DateIdea[] {
   const ideas: DateIdea[] = [];
-  const blocks = content.split(/✨/).filter((b) => b.trim());
+  const blocks = content.split(/\n\n/).filter((b) => b.trim());
 
   for (const block of blocks) {
     const lines = block.trim().split("\n");
     if (lines.length === 0) continue;
 
-    const title = lines[0].trim().replace(/^\[|\]$/g, "");
+    let title = lines[0].trim().replace(/^\d+\.\s*/, "").replace(/^\*\*|\*\*$/g, "");
     let description = "";
-    let connectionTip = "";
 
     for (const line of lines.slice(1)) {
       const trimmed = line.trim();
-      if (trimmed.startsWith("Description:")) {
-        description = trimmed.replace("Description:", "").trim();
-      } else if (trimmed.startsWith("Connection Tip:")) {
-        connectionTip = trimmed.replace("Connection Tip:", "").trim();
+      if (trimmed && !trimmed.startsWith("*")) {
+        description += (description ? " " : "") + trimmed;
       }
     }
 
-    if (title) {
+    if (title && title.length < 100) {
       ideas.push({
         title,
-        description: description + (connectionTip ? `\n\nConnection Tip: ${connectionTip}` : ""),
+        description: description || lines.slice(1).join(" ").trim(),
       });
+    }
+  }
+
+  if (ideas.length === 0 && content.trim()) {
+    const simpleBlocks = content.split(/\n/).filter((l) => l.trim());
+    for (let i = 0; i < simpleBlocks.length; i++) {
+      const line = simpleBlocks[i].trim();
+      if (line.match(/^\d+\./)) {
+        ideas.push({
+          title: line.replace(/^\d+\.\s*/, ""),
+          description: "",
+        });
+      }
     }
   }
 
@@ -91,6 +124,9 @@ export default function DateNightScreen() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [location, setLocation] = useState("");
   const [distance, setDistance] = useState(10);
+  const [price, setPrice] = useState("any");
+  const [energy, setEnergy] = useState("any");
+  const [time, setTime] = useState("evening");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedIdeas, setGeneratedIdeas] = useState<DateIdea[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -123,13 +159,13 @@ export default function DateNightScreen() {
     try {
       const payload = {
         interests: selectedInterests,
-        time: "evening",
+        time: time,
         zipCode: location.trim(),
         travelDistance: `${distance} miles`,
         activityLocation: "outdoors or indoors",
-        price: "any",
+        price: price,
         participants: "couple",
-        energy: "medium",
+        energy: energy,
       };
 
       const { data, error: fnError } = await supabase.functions.invoke("ai-date-night", {
@@ -157,6 +193,42 @@ export default function DateNightScreen() {
       setIsGenerating(false);
     }
   };
+
+  const OptionButtons = ({
+    options,
+    selected,
+    onSelect,
+  }: {
+    options: { id: string; label: string }[];
+    selected: string;
+    onSelect: (id: string) => void;
+  }) => (
+    <View style={styles.optionButtons}>
+      {options.map((opt) => (
+        <Pressable
+          key={opt.id}
+          style={[
+            styles.optionButton,
+            {
+              backgroundColor: selected === opt.id ? theme.link : theme.backgroundSecondary,
+              borderColor: selected === opt.id ? theme.link : theme.border,
+            },
+          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onSelect(opt.id);
+          }}
+        >
+          <ThemedText
+            type="small"
+            style={{ color: selected === opt.id ? "#FFFFFF" : theme.text }}
+          >
+            {opt.label}
+          </ThemedText>
+        </Pressable>
+      ))}
+    </View>
+  );
 
   return (
     <ScrollView
@@ -233,8 +305,8 @@ export default function DateNightScreen() {
           placeholderTextColor={theme.textSecondary}
         />
 
-        <ThemedText type="h4" style={styles.distanceLabel}>
-          Distance: {distance} miles
+        <ThemedText type="h4" style={styles.filterLabel}>
+          Distance
         </ThemedText>
         <View style={styles.distanceButtons}>
           {[5, 10, 15, 20, 30].map((d) => (
@@ -261,6 +333,23 @@ export default function DateNightScreen() {
             </Pressable>
           ))}
         </View>
+      </Card>
+
+      <Card style={styles.section}>
+        <ThemedText type="h4" style={styles.sectionTitle}>
+          Price
+        </ThemedText>
+        <OptionButtons options={PRICE_OPTIONS} selected={price} onSelect={setPrice} />
+
+        <ThemedText type="h4" style={styles.filterLabel}>
+          Energy Level
+        </ThemedText>
+        <OptionButtons options={ENERGY_OPTIONS} selected={energy} onSelect={setEnergy} />
+
+        <ThemedText type="h4" style={styles.filterLabel}>
+          Time of Day
+        </ThemedText>
+        <OptionButtons options={TIME_OPTIONS} selected={time} onSelect={setTime} />
       </Card>
 
       <Button
@@ -343,6 +432,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: Spacing.md,
   },
+  filterLabel: {
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
   interestsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -364,9 +457,6 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     marginBottom: Spacing.md,
   },
-  distanceLabel: {
-    marginBottom: Spacing.sm,
-  },
   distanceButtons: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -375,6 +465,18 @@ const styles = StyleSheet.create({
   distanceButton: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    margin: Spacing.xs,
+  },
+  optionButtons: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: -Spacing.xs,
+  },
+  optionButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     margin: Spacing.xs,

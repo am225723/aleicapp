@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
-import * as Haptics from "expo-haptics";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
@@ -15,66 +14,61 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { LoveLanguageResult } from "@/types";
 import { apiRequest } from "@/lib/query-client";
 
-const forcedChoiceQuestions = [
+const questions = [
   {
     id: 1,
-    text: "Which would you prefer?",
-    optionA: { language: "words_of_affirmation", text: "Hearing 'I love you' from my partner" },
-    optionB: { language: "quality_time", text: "Spending uninterrupted time together" },
+    text: "I feel most loved when...",
+    options: [
+      { language: "words_of_affirmation", text: "My partner tells me they love me" },
+      { language: "quality_time", text: "We spend quality time together" },
+      { language: "receiving_gifts", text: "My partner gives me thoughtful gifts" },
+      { language: "acts_of_service", text: "My partner helps me with tasks" },
+      { language: "physical_touch", text: "We cuddle or hold hands" },
+    ],
   },
   {
     id: 2,
-    text: "Which means more to you?",
-    optionA: { language: "receiving_gifts", text: "Receiving a thoughtful gift" },
-    optionB: { language: "acts_of_service", text: "Having my partner help with a task" },
+    text: "I appreciate it most when...",
+    options: [
+      { language: "words_of_affirmation", text: "I receive compliments and encouragement" },
+      { language: "quality_time", text: "We have uninterrupted conversations" },
+      { language: "receiving_gifts", text: "I get surprise presents" },
+      { language: "acts_of_service", text: "Chores are done without asking" },
+      { language: "physical_touch", text: "I get hugs and kisses" },
+    ],
   },
   {
     id: 3,
-    text: "Which would you prefer?",
-    optionA: { language: "physical_touch", text: "A long hug from my partner" },
-    optionB: { language: "words_of_affirmation", text: "A heartfelt compliment" },
+    text: "My ideal date would be...",
+    options: [
+      { language: "words_of_affirmation", text: "Sharing our feelings and dreams" },
+      { language: "quality_time", text: "A long walk together" },
+      { language: "receiving_gifts", text: "Exchanging meaningful gifts" },
+      { language: "acts_of_service", text: "Having my partner plan everything" },
+      { language: "physical_touch", text: "Dancing close together" },
+    ],
   },
   {
     id: 4,
-    text: "Which makes you feel more loved?",
-    optionA: { language: "quality_time", text: "A deep conversation together" },
-    optionB: { language: "receiving_gifts", text: "A surprise present" },
+    text: "I feel disconnected when...",
+    options: [
+      { language: "words_of_affirmation", text: "I don't hear positive words" },
+      { language: "quality_time", text: "We're too busy for each other" },
+      { language: "receiving_gifts", text: "Special occasions are forgotten" },
+      { language: "acts_of_service", text: "I have to do everything alone" },
+      { language: "physical_touch", text: "There's no physical affection" },
+    ],
   },
   {
     id: 5,
-    text: "Which would you choose?",
-    optionA: { language: "acts_of_service", text: "My partner doing chores for me" },
-    optionB: { language: "physical_touch", text: "Cuddling on the couch" },
-  },
-  {
-    id: 6,
-    text: "Which feels more meaningful?",
-    optionA: { language: "words_of_affirmation", text: "Words of encouragement" },
-    optionB: { language: "receiving_gifts", text: "A carefully chosen gift" },
-  },
-  {
-    id: 7,
-    text: "Which would you prefer?",
-    optionA: { language: "quality_time", text: "A date night with no distractions" },
-    optionB: { language: "acts_of_service", text: "My partner making me breakfast" },
-  },
-  {
-    id: 8,
-    text: "Which makes you feel more connected?",
-    optionA: { language: "physical_touch", text: "Holding hands while walking" },
-    optionB: { language: "quality_time", text: "Taking a walk and talking" },
-  },
-  {
-    id: 9,
-    text: "Which would mean more?",
-    optionA: { language: "receiving_gifts", text: "Flowers just because" },
-    optionB: { language: "physical_touch", text: "A back massage" },
-  },
-  {
-    id: 10,
-    text: "Which would you choose?",
-    optionA: { language: "acts_of_service", text: "My partner running errands for me" },
-    optionB: { language: "words_of_affirmation", text: "A love note from my partner" },
+    text: "I show love by...",
+    options: [
+      { language: "words_of_affirmation", text: "Expressing my feelings verbally" },
+      { language: "quality_time", text: "Making time for my partner" },
+      { language: "receiving_gifts", text: "Giving thoughtful presents" },
+      { language: "acts_of_service", text: "Doing things to help" },
+      { language: "physical_touch", text: "Physical affection" },
+    ],
   },
 ];
 
@@ -137,11 +131,10 @@ export default function LoveLanguageQuizScreen() {
   });
 
   const handleAnswer = (language: Language) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const newAnswers = { ...answers, [language]: answers[language] + 1 };
     setAnswers(newAnswers);
 
-    if (currentQuestion < forcedChoiceQuestions.length - 1) {
+    if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
       const sorted = Object.entries(newAnswers).sort((a, b) => b[1] - a[1]);
@@ -227,8 +220,8 @@ export default function LoveLanguageQuizScreen() {
         <Card>
           <ThemedText type="body" style={{ marginBottom: Spacing.md }}>
             This quiz will help you understand your primary and secondary love
-            languages. For each question, choose the option that feels more
-            meaningful to you.
+            languages. Answer honestly about what makes you feel most loved
+            and valued in your relationship.
           </ThemedText>
 
           <ThemedText type="body" style={{ marginBottom: Spacing.md }}>
@@ -249,8 +242,8 @@ export default function LoveLanguageQuizScreen() {
     );
   }
 
-  const question = forcedChoiceQuestions[currentQuestion];
-  const progress = ((currentQuestion + 1) / forcedChoiceQuestions.length) * 100;
+  const question = questions[currentQuestion];
+  const progress = ((currentQuestion + 1) / questions.length) * 100;
 
   return (
     <ScrollView
@@ -273,48 +266,30 @@ export default function LoveLanguageQuizScreen() {
       </View>
 
       <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
-        Question {currentQuestion + 1} of {forcedChoiceQuestions.length}
+        Question {currentQuestion + 1} of {questions.length}
       </ThemedText>
 
       <Card style={{ marginTop: Spacing.md }}>
-        <ThemedText type="h4" style={{ marginBottom: Spacing.xl, textAlign: "center" }}>
+        <ThemedText type="h4" style={{ marginBottom: Spacing.lg }}>
           {question.text}
         </ThemedText>
 
-        <View style={{ gap: Spacing.md }}>
-          <Pressable
-            style={[
-              styles.optionButton,
-              {
-                backgroundColor: theme.backgroundSecondary,
-                borderColor: theme.border,
-              },
-            ]}
-            onPress={() => handleAnswer(question.optionA.language as Language)}
-          >
-            <ThemedText type="body" style={{ textAlign: "center" }}>
-              {question.optionA.text}
-            </ThemedText>
-          </Pressable>
-
-          <ThemedText type="small" style={{ textAlign: "center", color: theme.textSecondary }}>
-            OR
-          </ThemedText>
-
-          <Pressable
-            style={[
-              styles.optionButton,
-              {
-                backgroundColor: theme.backgroundSecondary,
-                borderColor: theme.border,
-              },
-            ]}
-            onPress={() => handleAnswer(question.optionB.language as Language)}
-          >
-            <ThemedText type="body" style={{ textAlign: "center" }}>
-              {question.optionB.text}
-            </ThemedText>
-          </Pressable>
+        <View style={{ gap: Spacing.sm }}>
+          {question.options.map((option, index) => (
+            <Pressable
+              key={index}
+              style={[
+                styles.optionButton,
+                {
+                  backgroundColor: theme.backgroundSecondary,
+                  borderColor: theme.border,
+                },
+              ]}
+              onPress={() => handleAnswer(option.language as Language)}
+            >
+              <ThemedText type="body">{option.text}</ThemedText>
+            </Pressable>
+          ))}
         </View>
       </Card>
     </ScrollView>
@@ -353,7 +328,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   optionButton: {
-    padding: Spacing.xl,
+    padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
   },
