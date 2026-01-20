@@ -1,0 +1,76 @@
+
+You are working in the ALEIC mobile app repo (aleicapp-main). Goal: Align ALEIC screens with the Reference implementation (couplestherapy-main) in TERMS OF: (1) question wording, (2) question presentation pattern (e.g., two-choice vs multi-option), (3) screen flow and layout sections (intro → question → progress → results), and (4) labels/field order.
+
+IMPORTANT:
+- Do NOT do a deep backend rewrite. Keep existing Supabase storage/edge functions unless a small change is required to match UI setup.
+- The priority is making the UX and question flow match the reference app.
+- For every screen touched: preserve navigation, types, and build.
+- Update tests if any exist; ensure TypeScript passes.
+
+REFERENCE SOURCE:
+Compare to couplestherapy-main/mobile/src/screens/** as the “source of truth” for question text and how screens are structured.
+Use the ALEIC screens in aleicapp-main/client/screens/** as the target to refactor.
+
+DELIVERABLES:
+1) A “Screen Parity Report” markdown file at /docs/SCREEN_PARITY_REPORT.md listing each screen updated, what changed, and why.
+2) Implement the UI refactors described below.
+3) Ensure app builds and screens render without runtime errors.
+
+SCREENS TO ALIGN (highest priority):
+
+A) Love Language Quiz
+Files:
+- Target: aleicapp-main/client/screens/couple/LoveLanguageQuizScreen.tsx
+- Reference: couplestherapy-main/mobile/src/screens/client/LoveLanguageQuizScreen.tsx (and/or reference love-language-quiz.tsx if present)
+Required parity changes:
+- Change the quiz to “forced choice”: show ONE question at a time with EXACTLY TWO answer choices per screen.
+- Remove the “5 options at once” presentation.
+- After user picks one of two options, auto-advance to next question.
+- Add a simple progress indicator (e.g., “Question 3 of N”).
+- Ensure the question wording and both option texts match the reference text exactly.
+- Results screen: keep in the same file if ALEIC combines quiz+results, but present results in the same structure as reference (top love language, breakdown list, short explanation). Use existing storage; logic can remain simple.
+
+B) Love Map Quiz
+Files:
+- Target: aleicapp-main/client/screens/tools/LoveMapQuizScreen.tsx
+- Reference: couplestherapy-main/mobile/src/screens/client/LoveMapQuizScreen.tsx
+Required parity changes:
+- Match the reference flow structure: Intro → Truths phase → Guesses phase → Results/Comparison.
+- Show ONE question at a time, one text input, one primary CTA (“Next” / “Submit”).
+- Use the same headings, phase labels, and short instructional copy style as reference.
+- Questions: do NOT keep the hardcoded ALEIC question set if it differs. Instead, create a local question bank file (e.g., /client/constants/loveMapQuestions.ts) that mirrors the reference question text. If the reference loads from API, you may still keep local constants but the text MUST match reference.
+- Keep existing persistence in love_map_results; do not build partner sync logic. But present the results screen in the same layout sections as reference (Your answers, Your guesses, etc.).
+
+C) Weekly Check-in
+Files:
+- Target: aleicapp-main/client/screens/tools/WeeklyCheckinScreen.tsx
+- Reference: couplestherapy-main/mobile/src/screens/client/WeeklyCheckinScreen.tsx
+Required parity changes:
+- Rename the three rating sliders to exactly: Mood, Connection, Stress.
+- Add a required Reflection text field (required to submit).
+- Add a Privacy toggle (Private vs Shared) matching reference labels.
+- Add a “Recent Check-ins” section below the form (can be read-only list). Use existing table Couples_weekly_checkins if already used; if not, stub with a simple query.
+- Keep storage as-is, but ensure field names match what the UI displays.
+
+D) Date Night Generator
+Files:
+- Target: aleicapp-main/client/screens/couple/DateNightScreen.tsx
+- Reference: couplestherapy-main/mobile/src/screens/client/DateNightScreen.tsx
+Required parity changes:
+- Match reference input labels and order: Interests (multi-select), Location (free text), Distance (miles, numeric).
+- Move any extra ALEIC-only filters (price/energy/time) behind an “Optional filters” accordion or secondary screen so the primary flow matches reference.
+- Results: show as a clean list of idea cards with Title + Description like reference. Keep the Edge Function call, but adjust parsing/display so the user sees results in the same structure. If the edge function returns text, write a robust parser that maps to title/description cards.
+
+GENERAL RULES:
+- Keep styling consistent with ALEIC theme, but layout sections and interaction patterns must match reference.
+- Do not delete routes. Update navigation labels if needed so they match.
+- Ensure accessibility basics: tappable hit areas, scroll support, no clipped content.
+
+WORKFLOW:
+1) Diff each reference screen against ALEIC.
+2) Update ALEIC screens for parity.
+3) Add /docs/SCREEN_PARITY_REPORT.md with a per-screen bullet list of changes.
+4) Run TypeScript checks and fix errors.
+
+COMMIT:
+After completing, commit changes with message: "Align ALEIC screens to reference question flows"

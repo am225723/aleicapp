@@ -1,21 +1,32 @@
-import React, { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useState, useEffect } from "react";
+import { StyleSheet, View, Pressable, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
-import Slider from "@react-native-community/slider";
 import * as Haptics from "expo-haptics";
 
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors, BorderRadius } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
-import { createWeeklyCheckin } from "@/services/weeklyCheckinsService";
-import { createToolEntry } from "@/services/toolEntriesService";
+import { supabase } from "@/lib/supabase";
+
+interface WeeklyCheckin {
+  id: string;
+  couple_id: string;
+  mood_rating: number;
+  connection_rating: number;
+  stress_level: number;
+  reflection: string;
+  is_private: boolean;
+  created_at: string;
+}
 
 export default function WeeklyCheckinScreen() {
   const insets = useSafeAreaInsets();
@@ -24,16 +35,48 @@ export default function WeeklyCheckinScreen() {
   const navigation = useNavigation();
   const { profile } = useAuth();
 
+  const [moodRating, setMoodRating] = useState(5);
   const [connectionRating, setConnectionRating] = useState(5);
-  const [communicationRating, setCommunicationRating] = useState(5);
-  const [intimacyRating, setIntimacyRating] = useState(5);
-  const [notes, setNotes] = useState("");
+  const [stressLevel, setStressLevel] = useState(5);
+  const [reflection, setReflection] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recentCheckins, setRecentCheckins] = useState<WeeklyCheckin[]>([]);
+  const [loadingCheckins, setLoadingCheckins] = useState(true);
+
+  useEffect(() => {
+    loadRecentCheckins();
+  }, [profile?.couple_id]);
+
+  const loadRecentCheckins = async () => {
+    if (!profile?.couple_id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("Couples_weekly_checkins")
+        .select("*")
+        .eq("couple_id", profile.couple_id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      setRecentCheckins(data || []);
+    } catch (err) {
+      console.error("Error loading check-ins:", err);
+    } finally {
+      setLoadingCheckins(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!profile?.couple_id) {
       setError("You must be part of a couple to submit check-ins.");
+      return;
+    }
+
+    if (!reflection.trim()) {
+      Alert.alert("Required", "Please add a reflection");
       return;
     }
 
@@ -42,22 +85,23 @@ export default function WeeklyCheckinScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      await createWeeklyCheckin({
-        couple_id: profile.couple_id,
-        connection_rating: connectionRating,
-        communication_rating: communicationRating,
-        intimacy_rating: intimacyRating,
-        notes: notes.trim() || undefined,
-      });
+      const { error: insertError } = await supabase
+        .from("Couples_weekly_checkins")
+        .insert({
+          couple_id: profile.couple_id,
+          mood_rating: moodRating,
+          connection_rating: connectionRating,
+          stress_level: stressLevel,
+          reflection: reflection.trim(),
+          is_private: isPrivate,
+        });
 
-      await createToolEntry({
-        couple_id: profile.couple_id,
-        tool_type: "checkin",
-        payload: { connectionRating, communicationRating, intimacyRating },
-      });
+      if (insertError) throw insertError;
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      navigation.goBack();
+      Alert.alert("Success", "Weekly check-in submitted!");
+      setReflection("");
+      loadRecentCheckins();
     } catch (err) {
       console.error("Error submitting check-in:", err);
       setError("Failed to submit. Please try again.");
@@ -67,20 +111,51 @@ export default function WeeklyCheckinScreen() {
     }
   };
 
-  const getRatingLabel = (rating: number): string => {
-    if (rating <= 2) return "Needs attention";
-    if (rating <= 4) return "Could be better";
-    if (rating <= 6) return "Okay";
-    if (rating <= 8) return "Good";
-    return "Great";
-  };
-
-  const getRatingColor = (rating: number): string => {
-    if (rating <= 3) return Colors.light.error;
-    if (rating <= 5) return Colors.light.warning;
-    if (rating <= 7) return Colors.light.link;
-    return Colors.light.success;
-  };
+  const RatingButtons = ({
+    label,
+    value,
+    onChange,
+    color,
+  }: {
+    label: string;
+    value: number;
+    onChange: (v: number) => void;
+    color: string;
+  }) => (
+    <View style={styles.ratingGroup}>
+      <ThemedText type="h4" style={styles.ratingLabel}>
+        {label} (1-10)
+      </ThemedText>
+      <View style={styles.ratingButtons}>
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => (
+          <Pressable
+            key={v}
+            style={[
+              styles.ratingButton,
+              {
+                backgroundColor: value === v ? color : theme.backgroundSecondary,
+                borderColor: value === v ? color : theme.border,
+              },
+            ]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onChange(v);
+            }}
+          >
+            <ThemedText
+              type="small"
+              style={{
+                color: value === v ? "#FFFFFF" : theme.text,
+                fontWeight: "600",
+              }}
+            >
+              {v}
+            </ThemedText>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
 
   return (
     <KeyboardAwareScrollViewCompat
@@ -88,20 +163,15 @@ export default function WeeklyCheckinScreen() {
       contentContainerStyle={[
         styles.container,
         {
-          paddingTop: headerHeight + Spacing.xl,
+          paddingTop: headerHeight + Spacing.lg,
           paddingBottom: insets.bottom + Spacing["2xl"],
         },
       ]}
     >
-      <View style={styles.header}>
-        <ThemedText type="h2">Weekly Check-in</ThemedText>
-        <ThemedText
-          type="body"
-          style={[styles.subtitle, { color: theme.textSecondary }]}
-        >
-          How has your connection been this week?
-        </ThemedText>
-      </View>
+      <ThemedText type="h2">Weekly Check-In</ThemedText>
+      <ThemedText type="body" style={[styles.subtitle, { color: theme.textSecondary }]}>
+        Share how you're feeling and strengthen your connection
+      </ThemedText>
 
       {error ? (
         <View style={[styles.errorContainer, { backgroundColor: Colors.light.error + "20" }]}>
@@ -111,125 +181,110 @@ export default function WeeklyCheckinScreen() {
         </View>
       ) : null}
 
-      <View style={styles.sliderSection}>
-        <View style={styles.sliderHeader}>
-          <View style={styles.sliderLabel}>
-            <Feather name="heart" size={18} color={Colors.light.accent} />
-            <ThemedText type="h4" style={styles.sliderTitle}>
-              Connection
-            </ThemedText>
-          </View>
-          <View
-            style={[
-              styles.ratingBadge,
-              { backgroundColor: getRatingColor(connectionRating) + "20" },
-            ]}
-          >
-            <ThemedText
-              type="small"
-              style={{ color: getRatingColor(connectionRating) }}
-            >
-              {connectionRating}/10 - {getRatingLabel(connectionRating)}
-            </ThemedText>
-          </View>
-        </View>
-        <Slider
-          style={styles.slider}
-          minimumValue={1}
-          maximumValue={10}
-          step={1}
+      <Card style={styles.formCard}>
+        <RatingButtons
+          label="Mood"
+          value={moodRating}
+          onChange={setMoodRating}
+          color={Colors.light.warning}
+        />
+
+        <RatingButtons
+          label="Connection with Partner"
           value={connectionRating}
-          onValueChange={setConnectionRating}
-          minimumTrackTintColor={Colors.light.accent}
-          maximumTrackTintColor={theme.border}
-          thumbTintColor={Colors.light.accent}
+          onChange={setConnectionRating}
+          color={Colors.light.accent}
         />
-      </View>
 
-      <View style={styles.sliderSection}>
-        <View style={styles.sliderHeader}>
-          <View style={styles.sliderLabel}>
-            <Feather name="message-circle" size={18} color={Colors.light.link} />
-            <ThemedText type="h4" style={styles.sliderTitle}>
-              Communication
-            </ThemedText>
-          </View>
-          <View
-            style={[
-              styles.ratingBadge,
-              { backgroundColor: getRatingColor(communicationRating) + "20" },
-            ]}
-          >
-            <ThemedText
-              type="small"
-              style={{ color: getRatingColor(communicationRating) }}
-            >
-              {communicationRating}/10 - {getRatingLabel(communicationRating)}
-            </ThemedText>
-          </View>
+        <RatingButtons
+          label="Stress Level"
+          value={stressLevel}
+          onChange={setStressLevel}
+          color={Colors.light.error}
+        />
+
+        <View style={styles.inputGroup}>
+          <ThemedText type="h4" style={styles.ratingLabel}>
+            Reflection
+          </ThemedText>
+          <Input
+            placeholder="What's on your mind this week?"
+            value={reflection}
+            onChangeText={setReflection}
+            multiline
+            numberOfLines={4}
+            style={styles.textArea}
+            textAlignVertical="top"
+          />
         </View>
-        <Slider
-          style={styles.slider}
-          minimumValue={1}
-          maximumValue={10}
-          step={1}
-          value={communicationRating}
-          onValueChange={setCommunicationRating}
-          minimumTrackTintColor={Colors.light.link}
-          maximumTrackTintColor={theme.border}
-          thumbTintColor={Colors.light.link}
-        />
-      </View>
 
-      <View style={styles.sliderSection}>
-        <View style={styles.sliderHeader}>
-          <View style={styles.sliderLabel}>
-            <Feather name="sun" size={18} color={Colors.light.success} />
-            <ThemedText type="h4" style={styles.sliderTitle}>
-              Intimacy
-            </ThemedText>
-          </View>
-          <View
-            style={[
-              styles.ratingBadge,
-              { backgroundColor: getRatingColor(intimacyRating) + "20" },
-            ]}
-          >
-            <ThemedText
-              type="small"
-              style={{ color: getRatingColor(intimacyRating) }}
-            >
-              {intimacyRating}/10 - {getRatingLabel(intimacyRating)}
-            </ThemedText>
-          </View>
+        <Pressable
+          style={[
+            styles.privacyToggle,
+            {
+              backgroundColor: isPrivate ? theme.accent : theme.link,
+            },
+          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setIsPrivate(!isPrivate);
+          }}
+        >
+          <Feather
+            name={isPrivate ? "lock" : "users"}
+            size={18}
+            color="#FFFFFF"
+          />
+          <ThemedText type="body" style={styles.privacyText}>
+            {isPrivate ? "Private (Only You)" : "Shared (With Partner)"}
+          </ThemedText>
+        </Pressable>
+
+        <Button onPress={handleSubmit} disabled={isLoading}>
+          {isLoading ? "Submitting..." : "Submit Check-In"}
+        </Button>
+      </Card>
+
+      {recentCheckins.length > 0 ? (
+        <View style={styles.historySection}>
+          <ThemedText type="h4" style={styles.sectionTitle}>
+            Recent Check-Ins
+          </ThemedText>
+          {recentCheckins.map((checkin) => (
+            <Card key={checkin.id} style={styles.checkinCard}>
+              <View style={styles.checkinHeader}>
+                <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                  {new Date(checkin.created_at).toLocaleDateString()}
+                </ThemedText>
+                {checkin.is_private ? (
+                  <View style={[styles.privateBadge, { backgroundColor: theme.accent + "20" }]}>
+                    <Feather name="lock" size={12} color={theme.accent} />
+                    <ThemedText type="small" style={{ color: theme.accent, marginLeft: Spacing.xs }}>
+                      Private
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
+              <View style={styles.ratings}>
+                <ThemedText type="small">
+                  Mood: {checkin.mood_rating}/10
+                </ThemedText>
+                <ThemedText type="small">
+                  Connection: {checkin.connection_rating}/10
+                </ThemedText>
+                <ThemedText type="small">
+                  Stress: {checkin.stress_level}/10
+                </ThemedText>
+              </View>
+              {checkin.reflection ? (
+                <ThemedText type="body" style={styles.reflectionText}>
+                  {checkin.reflection}
+                </ThemedText>
+              ) : null}
+            </Card>
+          ))}
         </View>
-        <Slider
-          style={styles.slider}
-          minimumValue={1}
-          maximumValue={10}
-          step={1}
-          value={intimacyRating}
-          onValueChange={setIntimacyRating}
-          minimumTrackTintColor={Colors.light.success}
-          maximumTrackTintColor={theme.border}
-          thumbTintColor={Colors.light.success}
-        />
-      </View>
-
-      <Input
-        label="Additional Notes (optional)"
-        placeholder="Anything else you'd like to share about this week..."
-        value={notes}
-        onChangeText={setNotes}
-        multiline
-        numberOfLines={4}
-        style={styles.textArea}
-        textAlignVertical="top"
-      />
-
-      <Button onPress={handleSubmit} disabled={isLoading} style={styles.submitButton}>
-        {isLoading ? "Submitting..." : "Submit Check-in"}
-      </Button>
+      ) : null}
     </KeyboardAwareScrollViewCompat>
   );
 }
@@ -239,47 +294,88 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
   },
-  header: {
-    marginBottom: Spacing["2xl"],
-  },
   subtitle: {
-    marginTop: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
   errorContainer: {
     padding: Spacing.md,
     borderRadius: BorderRadius.sm,
     marginBottom: Spacing.md,
   },
-  sliderSection: {
-    marginBottom: Spacing["2xl"],
+  formCard: {
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
   },
-  sliderHeader: {
+  ratingGroup: {
+    marginBottom: Spacing.xl,
+  },
+  ratingLabel: {
+    marginBottom: Spacing.sm,
+  },
+  ratingButtons: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    flexWrap: "wrap",
+    marginHorizontal: -Spacing.xs,
+  },
+  ratingButton: {
+    minWidth: 36,
+    height: 36,
     alignItems: "center",
-    marginBottom: Spacing.md,
+    justifyContent: "center",
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    margin: Spacing.xs,
   },
-  sliderLabel: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  sliderTitle: {
-    marginLeft: Spacing.sm,
-  },
-  ratingBadge: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
-  },
-  slider: {
-    width: "100%",
-    height: 40,
+  inputGroup: {
+    marginBottom: Spacing.lg,
   },
   textArea: {
     height: 100,
     paddingTop: Spacing.md,
   },
-  submitButton: {
-    marginTop: "auto",
+  privacyToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  privacyText: {
+    color: "#FFFFFF",
+    marginLeft: Spacing.sm,
+    fontWeight: "600",
+  },
+  historySection: {
+    marginTop: Spacing.lg,
+  },
+  sectionTitle: {
+    marginBottom: Spacing.md,
+  },
+  checkinCard: {
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  checkinHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  privateBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+  },
+  ratings: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: Spacing.sm,
+  },
+  reflectionText: {
+    marginTop: Spacing.xs,
+    lineHeight: 20,
   },
 });
