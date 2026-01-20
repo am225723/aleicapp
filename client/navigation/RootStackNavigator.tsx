@@ -41,6 +41,21 @@ import TherapistMessagesScreen from "@/screens/therapist/TherapistMessagesScreen
 import DateNightScreen from "@/screens/couple/DateNightScreen";
 import CoupleProfileScreen from "@/screens/couple/CoupleProfileScreen";
 
+import AnalyticsScreen from "@/screens/couple/AnalyticsScreen";
+import CheckinHistoryScreen from "@/screens/couple/CheckinHistoryScreen";
+import SettingsScreen from "@/screens/couple/SettingsScreen";
+import GrowthPlanScreen from "@/screens/couple/GrowthPlanScreen";
+import ProgressTimelineScreen from "@/screens/couple/ProgressTimelineScreen";
+import DailySuggestionScreen from "@/screens/couple/DailySuggestionScreen";
+import MoodTrackerScreen from "@/screens/tools/MoodTrackerScreen";
+import ConflictResolutionScreen from "@/screens/tools/ConflictResolutionScreen";
+import CompatibilityScreen from "@/screens/tools/CompatibilityScreen";
+import ChoreChartScreen from "@/screens/tools/ChoreChartScreen";
+import CoupleSetupScreen from "@/screens/auth/CoupleSetupScreen";
+import AdminDashboardScreen from "@/screens/admin/AdminDashboardScreen";
+import TherapistManagementScreen from "@/screens/admin/TherapistManagementScreen";
+import UserManagementScreen from "@/screens/admin/UserManagementScreen";
+
 export type RootStackParamList = {
   Auth: undefined;
   CoupleTabs: undefined;
@@ -75,6 +90,20 @@ export type RootStackParamList = {
   TherapistMessages: undefined;
   DateNight: undefined;
   CoupleProfile: undefined;
+  Analytics: undefined;
+  CheckinHistory: undefined;
+  Settings: undefined;
+  GrowthPlan: undefined;
+  ProgressTimeline: undefined;
+  DailySuggestion: undefined;
+  MoodTracker: undefined;
+  ConflictResolution: undefined;
+  Compatibility: undefined;
+  ChoreChart: undefined;
+  CoupleSetup: undefined;
+  AdminDashboard: undefined;
+  AdminTherapistManagement: undefined;
+  AdminUserManagement: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -294,6 +323,76 @@ export default function RootStackNavigator() {
             name="CoupleProfile"
             component={CoupleProfileScreen}
             options={{ headerTitle: "Profile" }}
+          />
+          <Stack.Screen
+            name="Analytics"
+            component={AnalyticsScreen}
+            options={{ headerTitle: "Analytics" }}
+          />
+          <Stack.Screen
+            name="CheckinHistory"
+            component={CheckinHistoryScreen}
+            options={{ headerTitle: "Check-in History" }}
+          />
+          <Stack.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{ headerTitle: "Settings" }}
+          />
+          <Stack.Screen
+            name="GrowthPlan"
+            component={GrowthPlanScreen}
+            options={{ headerTitle: "Growth Plan" }}
+          />
+          <Stack.Screen
+            name="ProgressTimeline"
+            component={ProgressTimelineScreen}
+            options={{ headerTitle: "Progress Timeline" }}
+          />
+          <Stack.Screen
+            name="DailySuggestion"
+            component={DailySuggestionScreen}
+            options={{ headerTitle: "Daily Suggestion" }}
+          />
+          <Stack.Screen
+            name="MoodTracker"
+            component={MoodTrackerScreen}
+            options={{ headerTitle: "Mood Tracker" }}
+          />
+          <Stack.Screen
+            name="ConflictResolution"
+            component={ConflictResolutionScreen}
+            options={{ headerTitle: "Conflict Resolution" }}
+          />
+          <Stack.Screen
+            name="Compatibility"
+            component={CompatibilityScreen}
+            options={{ headerTitle: "Compatibility" }}
+          />
+          <Stack.Screen
+            name="ChoreChart"
+            component={ChoreChartScreen}
+            options={{ headerTitle: "Chore Chart" }}
+          />
+          <Stack.Screen
+            name="CoupleSetup"
+            component={CoupleSetupScreen}
+            options={{ headerTitle: "Link Partner" }}
+          />
+          <Stack.Screen
+            name="AdminDashboard"
+            component={AdminDashboardScreen}
+            options={{ headerTitle: "Admin Dashboard" }}
+          />
+          <Stack.Screen
+            name="AdminTherapistManagement"
+            component={TherapistManagementScreen}
+            options={{ headerTitle: "Manage Therapists" }}
+          />
+          <Stack.Screen
+            name="AdminUserManagement"
+            component={UserManagementScreen}
+            options={{ headerTitle: "Manage Users" }}
           />
         </>
       )}
