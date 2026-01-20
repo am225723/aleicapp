@@ -18,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 
 import { ThemedText } from "@/components/ThemedText";
+import { AvatarUpload } from "@/components/AvatarUpload";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -311,7 +312,13 @@ export default function CoupleHomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Image source={aleicLogo} style={styles.logo} contentFit="contain" />
+          <View style={styles.headerTop}>
+            <Image source={aleicLogo} style={styles.logo} contentFit="contain" />
+            <AvatarUpload
+              size={48}
+              onPress={() => navigation.navigate("CoupleProfile")}
+            />
+          </View>
           <ThemedText style={styles.headerTitle}>Relationship Dashboard</ThemedText>
         </View>
 
@@ -412,14 +419,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   header: {
-    alignItems: "center",
     marginBottom: Spacing.xl,
     marginTop: Spacing.md,
   },
-  logo: {
-    width: 120,
-    height: 50,
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: Spacing.sm,
+  },
+  logo: {
+    width: 100,
+    height: 40,
   },
   headerTitle: {
     fontSize: 18,

@@ -5,17 +5,17 @@ import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
 
 import CoupleHomeScreen from "@/screens/couple/CoupleHomeScreen";
-import ConnectScreen from "@/screens/couple/ConnectScreen";
-import ActivitiesScreen from "@/screens/couple/ActivitiesScreen";
-import PlanScreen from "@/screens/couple/PlanScreen";
-import CoupleProfileScreen from "@/screens/couple/CoupleProfileScreen";
+import CalmScreen from "@/screens/couple/CalmScreen";
+import ConnectToolsScreen from "@/screens/couple/ConnectToolsScreen";
+import DiscoverScreen from "@/screens/couple/DiscoverScreen";
+import PlanToolsScreen from "@/screens/couple/PlanToolsScreen";
 
 export type CoupleTabParamList = {
   CoupleHome: undefined;
+  Calm: undefined;
   Connect: undefined;
-  Activities: undefined;
+  Discover: undefined;
   Plan: undefined;
-  CoupleProfile: undefined;
 };
 
 const Tab = createBottomTabNavigator<CoupleTabParamList>();
@@ -68,7 +68,7 @@ export default function CoupleTabNavigator() {
         component={CoupleHomeScreen}
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconContainer : undefined}>
               <Feather name="home" size={22} color={color} />
             </View>
@@ -76,49 +76,49 @@ export default function CoupleTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Connect"
-        component={ConnectScreen}
+        name="Calm"
+        component={CalmScreen}
         options={{
-          title: "Connect",
-          tabBarIcon: ({ color, size, focused }) => (
+          title: "Calm",
+          tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconContainer : undefined}>
-              <Feather name="heart" size={22} color={color} />
+              <Feather name="wind" size={22} color={color} />
             </View>
           ),
         }}
       />
       <Tab.Screen
-        name="Activities"
-        component={ActivitiesScreen}
+        name="Connect"
+        component={ConnectToolsScreen}
         options={{
-          title: "Activities",
-          tabBarIcon: ({ color, size, focused }) => (
+          title: "Connect",
+          tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconContainer : undefined}>
-              <Feather name="compass" size={22} color={color} />
+              <Feather name="message-circle" size={22} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Discover"
+        component={DiscoverScreen}
+        options={{
+          title: "Discover",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconContainer : undefined}>
+              <Feather name="search" size={22} color={color} />
             </View>
           ),
         }}
       />
       <Tab.Screen
         name="Plan"
-        component={PlanScreen}
+        component={PlanToolsScreen}
         options={{
           title: "Plan",
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconContainer : undefined}>
               <Feather name="calendar" size={22} color={color} />
-            </View>
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="CoupleProfile"
-        component={CoupleProfileScreen}
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={focused ? styles.activeIconContainer : undefined}>
-              <Feather name="user" size={22} color={color} />
             </View>
           ),
         }}
