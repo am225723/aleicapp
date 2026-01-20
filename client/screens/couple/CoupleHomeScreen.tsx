@@ -429,8 +429,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   logo: {
-    width: 100,
-    height: 40,
+    width: 300,
+    height: 120,
   },
   headerTitle: {
     fontSize: 18,
