@@ -1,0 +1,240 @@
+You are working in the ALEIC mobile app repo (aleicapp-main). Implement the missing pages compared to the reference (couplestherapy-main) AND also implement the admin pages (admin-dashboard, therapist-management, user-management) as a web/admin-only section inside the same repo.
+
+HARD REQUIREMENTS
+- Do NOT break the existing mobile app navigation (5 tabs: Home, Connect, Activities, Plan, Profile).
+- Add missing screens as new React Native screens under client/screens/** and wire them into React Navigation.
+- Admin pages must NOT appear in mobile tab navigation. Put them behind an Admin-only route group and require an admin role check.
+- Use Supabase as the data layer (consistent with existing screens). Prefer direct supabase queries from the client for read operations where safe, otherwise use Supabase Edge Functions for privileged/admin operations.
+- Create SQL migrations for any new tables needed. Add RLS policies.
+- Ensure TypeScript passes. No runtime errors.
+
+REFERENCE SOURCE OF TRUTH
+Use the reference implementation (couplestherapy-main) to match screen purpose and general layout sections:
+- reference pages listed below (analytics, checkin-history, etc.)
+- use the question/setup and UX patterns from the reference
+However, exact visual styling can remain ALEIC’s theme.
+
+DELIVERABLES
+1) Implement the following missing screens (mobile):
+   - AnalyticsScreen
+   - CheckinHistoryScreen
+   - MoodTrackerScreen
+   - SettingsScreen (client settings)
+   - ConflictResolutionScreen
+   - CompatibilityScreen
+   - GrowthPlanScreen
+   - ProgressTimelineScreen
+   - DailySuggestionScreen
+   - ChoreChartScreen
+   - CoupleSetupScreen (partner linking flow)
+
+2) Implement the following admin web pages (admin-only):
+   - AdminDashboardScreen (admin-dashboard.tsx equivalent)
+   - TherapistManagementScreen (therapist-management.tsx equivalent)
+   - UserManagementScreen (user-management.tsx equivalent)
+
+3) Add docs:
+   - /docs/MISSING_SCREENS_IMPLEMENTED.md
+     Include: screen name, route, what it does, data tables used, and any assumptions.
+
+IMPLEMENTATION DETAILS
+
+A) AnalyticsScreen (mobile)
+Path: client/screens/couple/AnalyticsScreen.tsx
+Route: Analytics
+What it does:
+- Displays usage analytics for a couple: tools used, frequency, last used, trends.
+Data:
+- Create table Couples_tool_entries if it doesn’t already exist OR use existing table if present.
+Minimum fields: id, created_at, couple_id, user_id, tool_name, metadata(jsonb)
+Queries:
+- Aggregate counts by tool_name for last 7/30/90 days.
+UI:
+- Top summary cards (7d actions, most used tool)
+- List/chart-like breakdown (simple bars acceptable)
+
+B) CheckinHistoryScreen (mobile)
+Path: client/screens/couple/CheckinHistoryScreen.tsx
+Route: CheckinHistory
+What it does:
+- Shows historical weekly check-ins with trends.
+Data:
+- Use existing Couples_weekly_checkins table.
+UI:
+- List of past check-ins (date + Mood/Connection/Stress)
+- Simple trend view (can be basic average per week in text; no complex charts required)
+
+C) MoodTrackerScreen (mobile)
+Path: client/screens/tools/MoodTrackerScreen.tsx
+Route: MoodTracker
+What it does:
+- Daily mood logging + visualization.
+Data:
+- Create table Couples_moods (or Couples_mood_logs):
+  id uuid, created_at, user_id, couple_id, mood_int (1-10), notes text null
+RLS:
+- Users can insert/select their own; allow couple partner read if other Couples_* patterns do.
+UI:
+- Today’s mood picker (1-10)
+- Notes
+- Recent moods list
+
+D) SettingsScreen (mobile)
+Path: client/screens/couple/SettingsScreen.tsx
+Route: Settings
+What it does:
+- Notifications, privacy, preferences.
+Data:
+- Create table user_settings (or couples_settings if couple-scoped) with jsonb preferences.
+UI:
+- Toggles (push notifications, reminders)
+- Privacy section (share check-ins default)
+- Save button
+
+E) ConflictResolutionScreen (mobile)
+Path: client/screens/tools/ConflictResolutionScreen.tsx
+Route: ConflictResolution
+What it does:
+- Guided step-by-step conflict resolution.
+Data:
+- Save entries optionally to Couples_tool_entries with tool_name="ConflictResolution" and metadata (steps + reflections).
+UI:
+- Multi-step flow: Define issue → Feelings → Needs → Requests → Agreement summary
+
+F) CompatibilityScreen (mobile)
+Path: client/screens/tools/CompatibilityScreen.tsx
+Route: Compatibility
+What it does:
+- Compatibility assessment comparing partner answers.
+Data:
+- Create compatibility_results:
+  id, created_at, couple_id, user_id, answers jsonb, scores jsonb, summary text
+If partner comparison is too complex, store each user’s answers and show “awaiting partner” state.
+UI:
+- Question flow (can be forced-choice or scale)
+- Results summary + category scores
+
+G) GrowthPlanScreen (mobile)
+Path: client/screens/couple/GrowthPlanScreen.tsx
+Route: GrowthPlan
+What it does:
+- Personalized growth plan with milestones.
+Data:
+- Create growth_plans:
+  id, created_at, couple_id, created_by_user_id, title, milestones jsonb, status
+UI:
+- Plan overview + milestones checklist
+- Add milestone
+
+H) ProgressTimelineScreen (mobile)
+Path: client/screens/couple/ProgressTimelineScreen.tsx
+Route: ProgressTimeline
+What it does:
+- Timeline of relationship milestones and tool completions.
+Data:
+- Aggregate from Couples_weekly_checkins, Couples_tool_entries, growth_plans milestones.
+UI:
+- Chronological feed grouped by month
+
+I) DailySuggestionScreen (mobile)
+Path: client/screens/couple/DailySuggestionScreen.tsx
+Route: DailySuggestion
+What it does:
+- AI-generated daily relationship suggestion.
+Data:
+- Use Supabase Edge Function (new):
+  function name: ai-daily-suggestion
+  input: couple context (optional), recent activity (optional)
+  output: suggestion_text, optional_steps
+Store:
+- daily_suggestions table:
+  id, created_at, couple_id, suggestion jsonb/text
+UI:
+- Generate button, show today’s suggestion, save/share
+
+J) ChoreChartScreen (mobile)
+Path: client/screens/tools/ChoreChartScreen.tsx
+Route: ChoreChart
+What it does:
+- Shared chores assignment and tracking.
+Data:
+- Create Couples_chores:
+  id, created_at, couple_id, title, assigned_to_user_id null, due_date null, status
+UI:
+- List with status toggles (todo/done)
+- Assign dropdown (self/partner)
+
+K) CoupleSetupScreen (mobile)
+Path: client/screens/auth/CoupleSetupScreen.tsx
+Route: CoupleSetup
+What it does:
+- Post-signup partner linking flow (invite code).
+Data:
+- Use existing couples table / invitation codes pattern (match your Connect/Invites logic).
+UI:
+- Create code + enter partner code
+- Confirm partner linked
+
+ADMIN PAGES (ADMIN-ONLY, NOT IN MOBILE TABS)
+
+L) AdminDashboardScreen (web/admin-only)
+Path: client/screens/admin/AdminDashboardScreen.tsx
+Route group: AdminStack.AdminDashboard
+Access:
+- Only allow users with role="admin"
+Role data:
+- Use a user_roles table or claims; if none exists, create user_roles:
+  user_id uuid pk references auth.users, role text
+Admin operations:
+- Use Edge Functions for privileged reads/updates to avoid exposing admin-wide data via client RLS bypass.
+UI:
+- System totals: total users, couples, therapists
+- Recent signups list
+- Quick links to therapist management + user management
+
+M) TherapistManagementScreen (web/admin-only)
+Path: client/screens/admin/TherapistManagementScreen.tsx
+Route: AdminStack.TherapistManagement
+Features:
+- List therapists
+- Approve/disable therapist accounts
+- Set therapist attributes (name, status)
+Implementation:
+- Prefer Edge Function: admin-therapists (list/update)
+
+N) UserManagementScreen (web/admin-only)
+Path: client/screens/admin/UserManagementScreen.tsx
+Route: AdminStack.UserManagement
+Features:
+- List users/couples
+- Disable user access (soft disable flag)
+- View basic metadata (created_at, role)
+Implementation:
+- Prefer Edge Function: admin-users (list/update)
+
+NAVIGATION
+- Add new mobile routes to existing navigators (Home stack, Tools stack, Auth stack) as appropriate.
+- Add a separate AdminStack navigator that is only reachable from a hidden entry point:
+  - Example: in ProfileScreen add an “Admin” button only if role=admin.
+- Ensure admin screens do not render for non-admins (show “Not authorized”).
+
+MIGRATIONS
+- Add necessary SQL migrations under supabase/migrations.
+- Enable RLS and add policies for all new tables.
+- For admin-wide data, do NOT rely solely on client-side RLS if it would expose global lists. Use Edge Functions.
+
+EDGE FUNCTIONS (if needed)
+- ai-daily-suggestion
+- admin-users
+- admin-therapists
+Implement minimal, secure versions.
+
+QUALITY CHECKS
+- Ensure no TypeScript errors.
+- Ensure navigation routes compile.
+- Ensure all screens have loading + error states.
+- Ensure no secrets are hardcoded.
+
+COMMIT
+Commit changes with message:
+"Add missing reference screens + admin management pages"
