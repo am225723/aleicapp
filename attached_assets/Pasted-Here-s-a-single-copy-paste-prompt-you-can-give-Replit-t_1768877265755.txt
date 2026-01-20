@@ -1,0 +1,116 @@
+Here’s a **single copy-paste prompt** you can give Replit to eliminate local storage and standardize everything on Supabase (including offline cache as a “nice-to-have”, not the source of truth).
+
+---
+
+## ✅ Replit Mega Prompt: Remove AsyncStorage/local state and migrate fully to Supabase
+
+> **Goal:** Remove all AsyncStorage/local-storage persistence used for app data in the ALEIC mobile app. All user/couple data must be persisted in Supabase using the existing `Couples_*` tables. Local storage may be used only as an **optional cache** (read-through cache), never as the source of truth.
+>
+> ### 1) Audit & Inventory
+>
+> * Search the codebase for all usage of:
+>
+>   * `AsyncStorage`
+>   * any `localStorage` calls
+>   * any custom “storage” helpers that write to local persistence
+> * Create `MIGRATION_PLAN.md` listing:
+>
+>   * Feature/screen
+>   * current storage mechanism + key names
+>   * target Supabase table
+>   * read/write/delete operations needed
+>   * any missing RLS policies (if required)
+>
+> ### 2) Canonical Supabase Tables (must use these)
+>
+> Migrate the following features to Supabase using the canonical `Couples_*` tables:
+>
+> * Gratitude → `public."Couples_gratitude_logs"`
+> * Journal → `public."Couples_journal_entries"` (and attachments/shares tables if used)
+> * Rituals → `public."Couples_rituals"`
+> * Weekly check-ins → `public."Couples_weekly_checkins"`
+> * Calendar → `public."Couples_calendar_events"`
+> * Messages → `public."Couples_messages"` (already working)
+> * Voice memos metadata → `public."Couples_voice_memos"` (or if the app uses `voice_memos`, migrate to Couples table)
+>
+> ### 3) Implement a Supabase data layer (no direct screen queries)
+>
+> * Create service modules in `client/services/` (or existing pattern) for each domain:
+>
+>   * `gratitudeService.ts`
+>   * `journalService.ts`
+>   * `ritualsService.ts`
+>   * `weeklyCheckinsService.ts`
+>   * `calendarService.ts`
+> * Each service must provide:
+>
+>   * `list(coupleId, ...)`
+>   * `create(coupleId, payload)`
+>   * `update(id, payload)` where relevant
+>   * `remove(id)` where relevant
+> * Ensure queries match the actual schema column names in those `Couples_*` tables (do not invent columns).
+>
+> ### 4) Update screens to use Supabase services
+>
+> * Replace any local state persistence (AsyncStorage/local) with Supabase calls.
+> * Screens must:
+>
+>   * fetch on mount
+>   * show loading + error state
+>   * allow manual refresh
+>   * update UI optimistically only if safe, otherwise refetch after write
+>
+> ### 5) Optional Offline Cache (allowed but not required)
+>
+> If you keep AsyncStorage, it must be cache-only:
+>
+> * Cache last successful fetch under namespaced keys like `cache:<table>:<coupleId>`
+> * On startup:
+>
+>   * show cache immediately (fast)
+>   * then fetch from Supabase and reconcile
+> * Never write user actions only to cache; always write to Supabase first.
+>
+> ### 6) RLS + access checks
+>
+> * Confirm RLS policies exist for:
+>
+>   * `Couples_gratitude_logs`
+>   * `Couples_journal_entries`
+>   * `Couples_rituals`
+>   * `Couples_weekly_checkins`
+>   * `Couples_calendar_events`
+> * If missing, add policies:
+>
+>   * SELECT: couple members OR assigned therapist
+>   * INSERT/UPDATE/DELETE: couple members only (and enforce `user_id/created_by = auth.uid()` where such fields exist)
+>
+> ### 7) Clean removal
+>
+> * Remove any unused local storage keys and dead code paths.
+> * If AsyncStorage is only used for cache, rename imports and comments to “cache” everywhere.
+>
+> ### 8) Validation
+>
+> * Add a simple test checklist in `MIGRATION_PLAN.md`:
+>
+>   * Create/read/delete gratitude entry persists across reinstall
+>   * Create/read journal entry persists across reinstall
+>   * Add ritual persists across reinstall
+>   * Weekly check-in persists across reinstall
+>   * Calendar events persist across devices
+> * Ensure TypeScript compiles and app runs on Expo Go.
+>
+> **Guardrails:** Small commits by feature. Do not break existing navigation. Do not fake Supabase writes. Do not leave TODO stubs.
+
+---
+
+### Tiny add-on prompt (prevents Replit “guessing columns”)
+
+Paste this immediately after if you want it extra strict:
+
+> IMPORTANT: Before coding each service, inspect the actual Supabase table columns for the target `Couples_*` table (via typegen or a schema query) and use the real column names. Do not create new columns unless absolutely necessary.
+
+---
+
+If you want, I can also give you a **one-command Supabase type generation workflow** (`supabase gen types typescript...`) so Replit can’t mess up column names and will autocomplete everything.
