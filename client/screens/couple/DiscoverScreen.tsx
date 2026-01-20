@@ -18,6 +18,8 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
+const heroDiscover = require("../../assets/images/hero-discover.png");
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const LOVE_LANGUAGE_NAMES: Record<string, string> = {
@@ -151,7 +153,7 @@ export default function DiscoverScreen() {
         <CategoryHeroCard
           title="Discover"
           subtitle="Learn about yourself and each other"
-          gradientColors={["rgba(155, 89, 182, 0.4)", "rgba(80, 50, 100, 0.5)", "rgba(13, 13, 15, 0.95)"]}
+          image={heroDiscover}
         />
 
         <GlowWidgetGrid>

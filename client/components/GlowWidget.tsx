@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, Pressable, Platform } from "react-native";
+import { View, StyleSheet, Pressable, Platform, ImageBackground, ImageSourcePropType } from "react-native";
 import { BlurView } from "expo-blur";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -176,11 +176,43 @@ export function GlowBackground() {
 interface HeroCardProps {
   title: string;
   subtitle: string;
-  image?: any;
+  image?: ImageSourcePropType;
   gradientColors?: [string, string, string];
 }
 
-export function CategoryHeroCard({ title, subtitle, gradientColors = ["rgba(201, 169, 98, 0.3)", "rgba(100, 80, 60, 0.4)", "rgba(13, 13, 15, 0.9)"] }: HeroCardProps) {
+export function CategoryHeroCard({ 
+  title, 
+  subtitle, 
+  image,
+  gradientColors = ["rgba(201, 169, 98, 0.3)", "rgba(100, 80, 60, 0.4)", "rgba(13, 13, 15, 0.9)"] 
+}: HeroCardProps) {
+  const content = (
+    <>
+      <LinearGradient
+        colors={["transparent", "rgba(0, 0, 0, 0.7)", "rgba(0, 0, 0, 0.95)"]}
+        style={styles.heroGradient}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      />
+      <View style={styles.heroContent}>
+        <ThemedText style={styles.heroTitle}>{title}</ThemedText>
+        <ThemedText style={styles.heroSubtitle}>{subtitle}</ThemedText>
+      </View>
+    </>
+  );
+
+  if (image) {
+    return (
+      <ImageBackground
+        source={image}
+        style={styles.heroCard}
+        imageStyle={styles.heroImage}
+      >
+        {content}
+      </ImageBackground>
+    );
+  }
+
   return (
     <View style={styles.heroCard}>
       <LinearGradient
@@ -362,12 +394,15 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   heroCard: {
-    height: 120,
+    height: 140,
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
     marginBottom: Spacing.lg,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  heroImage: {
+    borderRadius: BorderRadius.lg,
   },
   heroGradient: {
     ...StyleSheet.absoluteFillObject,

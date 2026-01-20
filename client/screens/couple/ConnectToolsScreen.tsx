@@ -18,6 +18,8 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
+const heroConnect = require("../../assets/images/hero-connect.png");
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ConnectToolsScreen() {
@@ -110,7 +112,7 @@ export default function ConnectToolsScreen() {
         <CategoryHeroCard
           title="Connect"
           subtitle="Communicate and grow closer together"
-          gradientColors={["rgba(232, 165, 156, 0.4)", "rgba(100, 60, 60, 0.5)", "rgba(13, 13, 15, 0.95)"]}
+          image={heroConnect}
         />
 
         <GlowWidgetGrid>

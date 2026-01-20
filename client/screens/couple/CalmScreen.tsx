@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { StyleSheet, View, ScrollView, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
@@ -20,6 +20,8 @@ import { listGratitudeLogs } from "@/services/gratitudeService";
 import { listJournalEntries } from "@/services/journalService";
 import { listWeeklyCheckins } from "@/services/weeklyCheckinsService";
 import { supabase } from "@/lib/supabase";
+
+const heroCalm = require("../../assets/images/hero-calm.png");
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -110,7 +112,7 @@ export default function CalmScreen() {
         <CategoryHeroCard
           title="Calm"
           subtitle="Breathe, reflect, and find peace together"
-          gradientColors={["rgba(74, 144, 217, 0.4)", "rgba(40, 80, 100, 0.5)", "rgba(13, 13, 15, 0.95)"]}
+          image={heroCalm}
         />
 
         <GlowWidgetGrid>

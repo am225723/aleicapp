@@ -21,6 +21,8 @@ import { listDateNights } from "@/services/dateNightsService";
 import { listCalendarEvents } from "@/services/calendarService";
 import { supabase } from "@/lib/supabase";
 
+const heroPlan = require("../../assets/images/hero-plan.png");
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function PlanToolsScreen() {
@@ -120,7 +122,7 @@ export default function PlanToolsScreen() {
         <CategoryHeroCard
           title="Plan"
           subtitle="Build your future together"
-          gradientColors={["rgba(129, 201, 149, 0.4)", "rgba(40, 80, 60, 0.5)", "rgba(13, 13, 15, 0.95)"]}
+          image={heroPlan}
         />
 
         <GlowWidgetGrid>
