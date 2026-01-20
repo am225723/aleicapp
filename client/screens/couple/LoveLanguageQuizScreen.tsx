@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { View, StyleSheet, ScrollView, Pressable } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -12,9 +12,8 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import { Spacing, BorderRadius, Colors } from "@/constants/theme";
-import { LoveLanguageResult } from "@/types";
-import { apiRequest } from "@/lib/query-client";
 
 type LoveLanguageType =
   | "Words of Affirmation"
@@ -289,13 +288,16 @@ const loveLanguageDetails: Record<
   },
 };
 
-const languageKeyMap: Record<LoveLanguageType, string> = {
-  "Words of Affirmation": "words_of_affirmation",
-  "Quality Time": "quality_time",
-  "Receiving Gifts": "receiving_gifts",
-  "Acts of Service": "acts_of_service",
-  "Physical Touch": "physical_touch",
-};
+interface LoveLanguageResultData {
+  id: string;
+  user_id: string;
+  couple_id: string | null;
+  primary_language: string;
+  secondary_language: string | null;
+  scores: Record<LoveLanguageType, number>;
+  answers: LoveLanguageType[] | null;
+  created_at: string;
+}
 
 export default function LoveLanguageQuizScreen() {
   const { profile } = useAuth();
@@ -309,25 +311,62 @@ export default function LoveLanguageQuizScreen() {
   const [quizStarted, setQuizStarted] = useState(false);
   const [answers, setAnswers] = useState<LoveLanguageType[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [existingResult, setExistingResult] = useState<LoveLanguageResultData | null>(null);
   const [results, setResults] = useState<{
     scores: Record<LoveLanguageType, number>;
     primary: LoveLanguageType;
     secondary: LoveLanguageType;
   } | null>(null);
 
-  const { data: existingResult } = useQuery<LoveLanguageResult>({
-    queryKey: ["/api/love-language/user", profile?.id],
-    enabled: !!profile?.id,
-  });
+  useEffect(() => {
+    const fetchExistingResult = async () => {
+      if (!profile?.id) {
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from("love_language_results")
+          .select("*")
+          .eq("user_id", profile.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (!error && data) {
+          setExistingResult(data as LoveLanguageResultData);
+        }
+      } catch (err) {
+        console.error("Error fetching love language results:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchExistingResult();
+  }, [profile?.id]);
 
   const saveResultMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/love-language", data);
+    mutationFn: async (data: {
+      primary: LoveLanguageType;
+      secondary: LoveLanguageType;
+      scores: Record<LoveLanguageType, number>;
+      answers: LoveLanguageType[];
+    }) => {
+      if (!profile) throw new Error("Not authenticated");
+      const { error } = await supabase.from("love_language_results").insert({
+        user_id: profile.id,
+        couple_id: profile.couple_id ?? null,
+        primary_language: data.primary,
+        secondary_language: data.secondary,
+        scores: data.scores,
+        answers: data.answers,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["/api/love-language/user", profile?.id],
-      });
+      queryClient.invalidateQueries({ queryKey: ["love-language-results"] });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
   });
 
@@ -364,15 +403,12 @@ export default function LoveLanguageQuizScreen() {
       const calculatedResults = calculateScores(newAnswers);
       setResults(calculatedResults);
       setShowResults(true);
-
-      const apiData: Record<string, any> = {
-        primary_language: calculatedResults.primary,
-        secondary_language: calculatedResults.secondary,
-      };
-      Object.entries(calculatedResults.scores).forEach(([lang, score]) => {
-        apiData[languageKeyMap[lang as LoveLanguageType]] = score;
+      saveResultMutation.mutate({
+        primary: calculatedResults.primary,
+        secondary: calculatedResults.secondary,
+        scores: calculatedResults.scores,
+        answers: newAnswers,
       });
-      saveResultMutation.mutate(apiData);
     }
   };
 
@@ -482,22 +518,31 @@ export default function LoveLanguageQuizScreen() {
     );
   };
 
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: theme.backgroundRoot }]}>
+        <ActivityIndicator size="large" color={theme.link} />
+      </View>
+    );
+  }
+
   if (showResults && results) {
     return renderResultsPage(results);
   }
 
   if (existingResult && !quizStarted) {
-    const existingScores: Record<LoveLanguageType, number> = {
-      "Words of Affirmation": existingResult.words_of_affirmation || 0,
-      "Quality Time": existingResult.quality_time || 0,
-      "Receiving Gifts": existingResult.receiving_gifts || 0,
-      "Acts of Service": existingResult.acts_of_service || 0,
-      "Physical Touch": existingResult.physical_touch || 0,
+    const defaultScores: Record<LoveLanguageType, number> = {
+      "Words of Affirmation": 0,
+      "Quality Time": 0,
+      "Receiving Gifts": 0,
+      "Acts of Service": 0,
+      "Physical Touch": 0,
     };
+    const existingScores = existingResult.scores || defaultScores;
 
     return renderResultsPage({
       primary: existingResult.primary_language as LoveLanguageType,
-      secondary: existingResult.secondary_language as LoveLanguageType,
+      secondary: (existingResult.secondary_language || "Quality Time") as LoveLanguageType,
       scores: existingScores,
     });
   }
@@ -620,6 +665,10 @@ export default function LoveLanguageQuizScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    justifyContent: "center",
+    alignItems: "center",
   },
   content: {
     padding: Spacing.lg,
