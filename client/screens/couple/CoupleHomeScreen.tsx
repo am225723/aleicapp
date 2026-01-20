@@ -26,7 +26,7 @@ import { listGratitudeLogs, GratitudeLog } from "@/services/gratitudeService";
 import { listWeeklyCheckins, WeeklyCheckin } from "@/services/weeklyCheckinsService";
 
 const aleicLogo = require("../../assets/aleiclogo.png");
-const heroImage = require("../../../attached_assets/stock_images/romantic_couple_silh_eb6a64a2.jpg");
+const heroImage = require("../../assets/images/hero-couple.jpg");
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
