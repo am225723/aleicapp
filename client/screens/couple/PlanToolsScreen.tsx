@@ -191,6 +191,39 @@ export default function PlanToolsScreen() {
               badge={financeCount > 0 ? `${financeCount} discussions` : undefined}
             />
           </GlowWidgetRow>
+
+          <GlowWidgetRow>
+            <GlowWidget
+              title="Chore Chart"
+              subtitle="Share household tasks"
+              icon="check-square"
+              iconColor={GlowColors.accentGreen}
+              backgroundColor={GlowColors.cardGreen}
+              onPress={() => handleNavigate("ChoreChart")}
+              statusText="Keep it balanced"
+            />
+            <GlowWidget
+              title="Growth Plan"
+              subtitle="Milestones together"
+              icon="trending-up"
+              iconColor={GlowColors.gold}
+              backgroundColor={GlowColors.cardBrown}
+              onPress={() => handleNavigate("GrowthPlan")}
+              statusText="Track your progress"
+            />
+          </GlowWidgetRow>
+
+          <GlowWidgetRow>
+            <GlowWidget
+              title="Daily Tip"
+              subtitle="Relationship advice"
+              icon="zap"
+              iconColor={GlowColors.accentPink}
+              backgroundColor={GlowColors.cardRed}
+              onPress={() => handleNavigate("DailySuggestion")}
+              statusText="Fresh ideas daily"
+            />
+          </GlowWidgetRow>
         </GlowWidgetGrid>
       </ScrollView>
     </View>

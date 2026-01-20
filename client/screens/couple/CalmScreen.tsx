@@ -183,6 +183,18 @@ export default function CalmScreen() {
               badge={journalCount > 0 ? `${journalCount} entries` : undefined}
             />
           </GlowWidgetRow>
+
+          <GlowWidgetRow>
+            <GlowWidget
+              title="Mood Tracker"
+              subtitle="Log how you're feeling"
+              icon="smile"
+              iconColor={GlowColors.accentPink}
+              backgroundColor={GlowColors.cardRed}
+              onPress={() => handleNavigate("MoodTracker")}
+              statusText="Track daily moods"
+            />
+          </GlowWidgetRow>
         </GlowWidgetGrid>
       </ScrollView>
     </View>

@@ -184,6 +184,18 @@ export default function ConnectToolsScreen() {
               statusText={intimacyStatus}
             />
           </GlowWidgetRow>
+
+          <GlowWidgetRow>
+            <GlowWidget
+              title="Conflict Resolution"
+              subtitle="Resolve issues together"
+              icon="flag"
+              iconColor={GlowColors.accentOrange}
+              backgroundColor={GlowColors.cardOrange}
+              onPress={() => handleNavigate("ConflictResolution")}
+              statusText="5-step guided process"
+            />
+          </GlowWidgetRow>
         </GlowWidgetGrid>
       </ScrollView>
     </View>

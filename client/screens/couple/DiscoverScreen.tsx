@@ -219,6 +219,19 @@ export default function DiscoverScreen() {
               statusText={valuesStatus}
             />
           </GlowWidgetRow>
+
+          <GlowWidgetRow>
+            <GlowWidget
+              title="Compatibility"
+              subtitle="How you work best together"
+              icon="heart"
+              iconColor={GlowColors.accentPink}
+              backgroundColor={GlowColors.cardRed}
+              onPress={() => handleNavigate("Compatibility")}
+              size="large"
+              statusText="Based on your quiz results"
+            />
+          </GlowWidgetRow>
         </GlowWidgetGrid>
       </ScrollView>
     </View>
