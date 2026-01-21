@@ -22,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { LOVE_MAP_QUESTIONS } from "@/constants/loveMapQuestions";
+import { isFuzzyMatch, getFuzzyScore } from "@/lib/fuzzyMatch";
 
 type Phase = "truths" | "guesses" | "results";
 
@@ -37,6 +38,14 @@ interface GuessEntry {
   guess: string;
 }
 
+interface ResultEntry {
+  question_id: number;
+  truth: string;
+  guess: string;
+  isMatch: boolean;
+  score: number;
+}
+
 export default function LoveMapQuizScreen() {
   const { theme } = useTheme();
   const { profile } = useAuth();
@@ -50,10 +59,8 @@ export default function LoveMapQuizScreen() {
   const [truths, setTruths] = useState<TruthEntry[]>([]);
   const [guesses, setGuesses] = useState<GuessEntry[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [results, setResults] = useState<{
-    truths: TruthEntry[];
-    guesses: GuessEntry[];
-  } | null>(null);
+  const [results, setResults] = useState<ResultEntry[] | null>(null);
+  const [matchScore, setMatchScore] = useState<number>(0);
 
   const currentQuestion = QUESTIONS[currentIndex];
   const progress = ((currentIndex + 1) / QUESTIONS.length) * 100;
@@ -101,16 +108,40 @@ export default function LoveMapQuizScreen() {
     } else {
       setIsSubmitting(true);
       try {
+        // Calculate results with fuzzy matching
+        const resultEntries: ResultEntry[] = QUESTIONS.map((q) => {
+          const truth = truths.find((t) => t.question_id === q.id);
+          const guess = newGuesses.find((g) => g.question_id === q.id);
+          const truthAnswer = truth?.answer || "";
+          const guessAnswer = guess?.guess || "";
+          const isMatch = isFuzzyMatch(truthAnswer, guessAnswer);
+          const score = getFuzzyScore(truthAnswer, guessAnswer);
+          return {
+            question_id: q.id,
+            truth: truthAnswer,
+            guess: guessAnswer,
+            isMatch,
+            score,
+          };
+        });
+
+        const matchCount = resultEntries.filter((r) => r.isMatch).length;
+        const overallScore = Math.round((matchCount / QUESTIONS.length) * 100);
+        setMatchScore(overallScore);
+
         if (profile?.couple_id) {
-          await supabase.from("love_map_results").insert({
+          await supabase.from("Couples_love_map_results").insert({
             user_id: profile.id,
             couple_id: profile.couple_id,
             truths: truths,
             guesses: newGuesses,
+            results: resultEntries,
+            match_count: matchCount,
             total_questions: QUESTIONS.length,
+            score_percentage: overallScore,
           });
         }
-        setResults({ truths, guesses: newGuesses });
+        setResults(resultEntries);
         setPhase("results");
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (error) {
@@ -123,6 +154,8 @@ export default function LoveMapQuizScreen() {
   };
 
   if (phase === "results" && results) {
+    const matchCount = results.filter((r) => r.isMatch).length;
+    
     return (
       <ThemedView style={styles.container}>
         <ScrollView
@@ -132,14 +165,21 @@ export default function LoveMapQuizScreen() {
           ]}
         >
           <View style={styles.resultHeader}>
-            <View style={[styles.resultIcon, { backgroundColor: theme.link }]}>
+            <View style={[styles.resultIcon, { backgroundColor: matchScore >= 70 ? theme.success : matchScore >= 40 ? theme.warning : theme.error }]}>
               <Feather name="heart" size={32} color="#fff" />
             </View>
             <ThemedText type="h2" style={styles.resultTitle}>
-              Quiz Complete!
+              {matchScore}% Match
             </ThemedText>
             <ThemedText type="body" style={[styles.resultSubtitle, { color: theme.textSecondary }]}>
-              Compare your answers with your partner
+              {matchCount} of {QUESTIONS.length} correct guesses
+            </ThemedText>
+            <ThemedText type="small" style={[styles.resultHint, { color: theme.textSecondary }]}>
+              {matchScore >= 70
+                ? "You know your partner well!"
+                : matchScore >= 40
+                ? "Good effort! Keep learning about each other."
+                : "Keep exploring together!"}
             </ThemedText>
           </View>
 
@@ -147,15 +187,24 @@ export default function LoveMapQuizScreen() {
             Your Answers & Guesses
           </ThemedText>
 
-          {QUESTIONS.map((question, index) => {
-            const truth = results.truths.find(t => t.question_id === question.id);
-            const guess = results.guesses.find(g => g.question_id === question.id);
+          {QUESTIONS.map((question) => {
+            const result = results.find((r) => r.question_id === question.id);
+            if (!result) return null;
 
             return (
               <Card key={question.id} style={styles.resultCard}>
-                <ThemedText type="h4" style={styles.questionTitle}>
-                  {question.text}
-                </ThemedText>
+                <View style={styles.resultCardHeader}>
+                  <ThemedText type="h4" style={styles.questionTitle}>
+                    {question.text}
+                  </ThemedText>
+                  <View style={[styles.matchBadge, { backgroundColor: result.isMatch ? theme.success + "20" : theme.error + "20" }]}>
+                    <Feather
+                      name={result.isMatch ? "check" : "x"}
+                      size={14}
+                      color={result.isMatch ? theme.success : theme.error}
+                    />
+                  </View>
+                </View>
                 
                 <View style={styles.answerRow}>
                   <View style={[styles.answerBadge, { backgroundColor: theme.success + "20" }]}>
@@ -164,20 +213,24 @@ export default function LoveMapQuizScreen() {
                     </ThemedText>
                   </View>
                   <ThemedText type="body" style={styles.answerText}>
-                    {truth?.answer || "—"}
+                    {result.truth || "—"}
                   </ThemedText>
                 </View>
 
                 <View style={styles.answerRow}>
-                  <View style={[styles.answerBadge, { backgroundColor: theme.link + "20" }]}>
-                    <ThemedText type="small" style={{ color: theme.link }}>
+                  <View style={[styles.answerBadge, { backgroundColor: result.isMatch ? theme.link + "20" : theme.error + "20" }]}>
+                    <ThemedText type="small" style={{ color: result.isMatch ? theme.link : theme.error }}>
                       Your Guess
                     </ThemedText>
                   </View>
                   <ThemedText type="body" style={styles.answerText}>
-                    {guess?.guess || "—"}
+                    {result.guess || "—"}
                   </ThemedText>
                 </View>
+
+                <ThemedText type="small" style={[styles.matchScoreText, { color: theme.textSecondary }]}>
+                  Similarity: {Math.round(result.score * 100)}%
+                </ThemedText>
               </Card>
             );
           })}
@@ -374,6 +427,29 @@ const styles = StyleSheet.create({
   resultSubtitle: {
     textAlign: "center",
   },
+  resultHint: {
+    textAlign: "center",
+    marginTop: Spacing.sm,
+    lineHeight: 20,
+  },
+  resultCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: Spacing.sm,
+  },
+  matchBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: Spacing.sm,
+  },
+  matchScoreText: {
+    marginTop: Spacing.sm,
+    textAlign: "right",
+  },
   sectionTitle: {
     marginBottom: Spacing.lg,
   },
@@ -381,7 +457,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   questionTitle: {
-    marginBottom: Spacing.md,
+    flex: 1,
     lineHeight: 24,
   },
   answerRow: {
