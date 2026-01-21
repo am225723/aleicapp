@@ -1,0 +1,210 @@
+You are working in the ALEIC repo (Expo React Native + Supabase). Fix the Conflict Resolution I-statement generator and ensure the 4 quizzes (Love Language, Attachment, Enneagram, Love Map) SAVE + DISPLAY correctly, aligning behavior with the reference implementation in /reference/couplestherapy-main.
+
+USER CLARIFICATIONS (treat as requirements)
+- Love Map: show BOTH scores in Discover (Mine + Partner).
+- Love Map scoring should be “close enough” (fuzzy match), not strict string equality.
+- Conflict session history should show ONLY the current user’s sessions (not partner sessions).
+- Replace the old Conflict wizard entirely with the generator UI.
+- “All quizzes” = the 4 shown in Discover.
+
+PRIMARY GOALS
+1) Recreate the “I-statement generator” UX from couplestherapy-main:
+   - Let the user type what they want to say (Express Freely) OR fill structured fields (Structured).
+   - A firmness slider changes the tone.
+   - Press Generate -> app calls Supabase Edge Function and shows the rewritten I-statement + impact preview + tone description + suggestions.
+   - Allow Copy to clipboard.
+   - Allow Save session and show previously saved sessions (current user only).
+
+2) Fix quiz persistence + Discover display:
+   - Discover should correctly show the latest results for Love Language, Attachment, Enneagram, Love Map.
+   - Must not break if there are multiple rows (no .single() without ordering/limit).
+   - Must still show the user’s own results even when couple_id is null.
+   - Love Map quiz must insert valid data that matches DB schema.
+   - In Discover, Love Map section must show both: Mine score and Partner score (when available).
+
+IMPORTANT CONTEXT (already in repo)
+- Reference web I-statement generator:
+  - reference/couplestherapy-main/client/src/pages/conflict-resolution.tsx
+  - reference/couplestherapy-main/client/src/lib/ai-functions.ts
+- Supabase edge functions already exist in this repo:
+  - supabase/functions/conflict-generate-statement/index.ts
+  - supabase/functions/conflict-generate-suggestions/index.ts
+- Conflict sessions table exists:
+  - supabase/migrations/conflict_resolution_tables.sql (table "Couples_conflict_sessions")
+- Current mobile conflict screen is not wired correctly:
+  - client/screens/tools/ConflictResolutionScreen.tsx currently saves to "Couples_tool_entries" with tool_name/metadata, but schema expects tool_type/payload. Stop using Couples_tool_entries for conflict.
+
+TASK A — Replace ConflictResolutionScreen with I-Statement Generator (React Native)
+Files:
+- Replace/Rewrite: client/screens/tools/ConflictResolutionScreen.tsx
+- Use edge functions via supabase.functions.invoke(...) like DateNightScreen does.
+
+Requirements:
+1) UI/UX
+   - Two modes: “Structured” and “Express Freely”
+     - Structured inputs: feeling, situation (when...), because, request
+     - Express input: freeText (multiline TextInput)
+   - Firmness slider (0–100) with label/value.
+   - Generate button (disabled when loading or invalid inputs).
+   - Results after generation:
+     - enhanced_statement (primary)
+     - impact_preview and tone_description if provided
+     - suggestions list
+     - Copy button (expo-clipboard)
+   - Save session:
+     - Optional title input (auto-title if blank, e.g., first 5–8 words of statement)
+     - “Save session” button inserts into "Couples_conflict_sessions"
+   - History section (current user only):
+     - Load latest 10 sessions filtered by user_id (and couple_id if needed for RLS)
+     - Show title + created_at + snippet
+     - Tap to expand full content
+
+2) Data wiring
+   - Generate: call edge function "conflict-generate-statement"
+     Body:
+       { mode: "structured"|"express", firmness, feeling, situation, because, request, free_text }
+   - Validate:
+       - express: free_text >= 10 chars
+       - structured: require at least feeling + situation
+   - Suggestions: call "conflict-generate-suggestions" after statement is returned.
+   - Save: insert into "Couples_conflict_sessions":
+     - user_id = profile.id
+     - couple_id = profile.couple_id (required by table; if null, show friendly error + don’t save)
+     - input_mode, free_text, feeling, situation, because, request, firmness
+     - enhanced_statement, impact_preview
+     - ai_suggestions = suggestions
+     - title
+
+3) Robustness
+   - Alert on errors.
+   - Keep existing styling patterns (ThemedView, Card, ThemedText, etc).
+   - No TypeScript errors.
+   - Remove the old “wizard” experience; the screen should now be the generator.
+
+TASK B — Fix Love Map Quiz Saving + Close-Enough Scoring (Bigram Dice OR Token Jaccard)
+File:
+- Update: client/screens/tools/LoveMapQuizScreen.tsx
+
+DB schema (supabase/migrations/20260119_new_modules.sql):
+- love_map_results columns:
+  user_id (uuid, not null)
+  couple_id (uuid, nullable)
+  score (int, not null)
+  total_questions (int, not null)
+  answers (jsonb, not null)
+  areas_to_explore (jsonb, nullable)
+
+Current bug:
+- Code inserts truths/guesses columns that do not exist and does not set score.
+
+Implement:
+1) Build a single answers payload that matches schema:
+   answers = { truths: TruthEntry[], guesses: GuessEntry[] }
+   - TruthEntry: { question_id: string; answer: string }
+   - GuessEntry: { question_id: string; guess: string }
+
+2) Insert a record ALWAYS (even if couple_id is null):
+   - user_id: profile.id
+   - couple_id: profile.couple_id ?? null
+   - total_questions: QUESTIONS.length
+   - answers: answers payload
+   - score: computed if possible else 0
+   - areas_to_explore: array (question_ids or objects) where mismatch (only if partner truths available), else null/[]
+
+3) Fetch partner truths (best-effort, graceful fallback):
+   - If profile.couple_id exists, fetch partner’s latest love_map_results:
+       from("love_map_results")
+         .select("answers")
+         .eq("couple_id", profile.couple_id)
+         .neq("user_id", profile.id)
+         .order("created_at", { ascending: false })
+         .limit(1)
+         .maybeSingle()
+   - If not available (no row or RLS), score=0 and areas_to_explore null/[].
+
+4) “Close enough” matching rules (REQUIRED):
+   Implement a local fuzzy match helper with:
+   - normalize(s): lowercase, trim, collapse whitespace, strip punctuation/symbols
+   - tokenization: split on whitespace; drop empty tokens
+   - bigrams: character bigrams from normalized string with spaces removed (or keep spaces but be consistent)
+   Metrics:
+   - Bigram Dice coefficient:
+       dice = (2 * |B(a) ∩ B(b)|) / (|B(a)| + |B(b)|)
+   - Token Jaccard similarity:
+       jaccard = |T(a) ∩ T(b)| / |T(a) ∪ T(b)|
+   Match condition:
+     return (dice >= 0.80) OR (jaccard >= 0.75)
+
+   Scoring:
+   - If partner truths exist in partnerRow.answers.truths:
+       matches = count where fuzzyMatch(partnerTruth.answer, myGuess.guess) is true
+       score = matches
+       areas_to_explore = list where fuzzyMatch is false
+   - Otherwise score=0.
+
+NOTE: answers payload MUST contain both truths and guesses so Discover can compute both directions later.
+
+TASK C — Fix Discover Screen to Display Latest Results Reliably (and Love Map Both Scores)
+File:
+- Update: client/screens/couple/DiscoverScreen.tsx
+
+Current bugs:
+- Early return requires couple_id (prevents showing user-only results).
+- Uses .single() for tables that can have multiple results.
+- Enneagram column mismatch: selects enneagram_type but quiz saves primary_type.
+- Attachment mapping includes disorganized, but quiz uses “fearful”.
+
+Implement:
+1) Remove couple_id hard block:
+   - Only require profile.id to load self results.
+   - If couple_id is missing, still show user’s Love Language, Attachment, Enneagram, Love Map.
+   - If couple-dependent sections exist, hide/disable them when couple_id is null.
+
+2) For each quiz, load the latest row for the user (order/limit/maybeSingle):
+   - love_language_results: select primary_language where user_id=profile.id
+   - attachment_results: select attachment_style where user_id=profile.id
+   - enneagram_results: select primary_type where user_id=profile.id
+   - love_map_results: select score, total_questions, answers where user_id=profile.id
+
+3) Fix constants:
+   - Attachment mapping must include “fearful” (not disorganized).
+
+4) Love Map in Discover must show BOTH scores (Mine + Partner):
+   - If couple_id exists, fetch partner’s latest love_map_results as well:
+       select score, total_questions, answers
+   - Display:
+       Mine: myScore / total
+       Partner: partnerScore / total
+   - If partner score is missing/0 but answers exist, compute on the fly using the SAME fuzzy matcher as Task B (Bigram Dice OR Token Jaccard):
+       - myScore = fuzzy compare partnerTruths vs myGuesses (if both present)
+       - partnerScore = fuzzy compare myTruths vs partnerGuesses (if both present)
+   - If partner row doesn’t exist, show “Partner hasn’t taken this yet”.
+
+5) No crashes:
+   - Always handle empty results; keep “Take the quiz” CTAs.
+
+- If partner reads fail due to policies referencing “profiles” vs “Couples_profiles”, add a migration creating a view:
+    CREATE VIEW profiles AS SELECT id, couple_id FROM "Couples_profiles";
+  Use a safe DO block to avoid errors if it exists.
+  Only do this if you hit policy/RLS errors during testing.
+
+ACCEPTANCE CRITERIA (manual test)
+- Conflict Resolution:
+  - Structured: fill feeling+situation -> generate works; changing firmness changes tone.
+  - Express: enter >=10 chars -> generate works.
+  - Copy works.
+  - Save creates a row in Couples_conflict_sessions.
+  - History shows ONLY current user’s saved sessions.
+- Love Map:
+  - Completing quiz inserts a valid row in love_map_results (score, total_questions, answers).
+  - If partner truths exist, score uses fuzzy matching:
+      match if (Dice ≥ 0.8) OR (token Jaccard ≥ 0.75)
+- Discover:
+  - Shows latest Love Language, Attachment (with fearful), Enneagram (primary_type), Love Map even if couple_id is null.
+  - Love Map shows BOTH scores when partner row exists (mine + partner), using fuzzy compute if needed.
+  - No .single() errors if multiple rows exist.
+
+DELIVERABLES
+- Updated TSX screens with clean TS types.
+- New fuzzy matcher should be shared (client/lib/fuzzyMatch.ts or similar) and imported by both LoveMapQuizScreen and DiscoverScreen to avoid drift.
+- If you add a migration, put it in supabase/migrations with timestamped filename and a comment explaining why.
