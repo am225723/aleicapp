@@ -145,6 +145,11 @@ All tables have RLS policies for proper data isolation by couple_id.
 - Access controlled via `user_roles` table (role='admin')
 
 ## Recent Changes
+- January 2026: AllFeaturesScreen and database cleanup
+  - Added AllFeaturesScreen with search and category filtering for all 37+ relationship tools
+  - Fixed remaining 'profiles' table references - now exclusively using 'Couples_profiles'
+  - Updated TherapistMessagesScreen to use Couples_profiles for partner names
+  - Added AllFeatures widget to ToolsScreen for easy access to all features
 - January 2026: Added new screens and admin system
   - New couple screens: Analytics, Check-in History, Mood Tracker, Settings, Growth Plan, Progress Timeline, Daily Suggestion
   - New tools: Conflict Resolution, Compatibility Assessment, Chore Chart
