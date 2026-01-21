@@ -85,13 +85,15 @@ export default function DiscoverScreen() {
       }
 
       const { data: loveMap } = await supabase
-        .from("love_map_results")
-        .select("score")
+        .from("Couples_love_map_results")
+        .select("score_percentage")
         .eq("couple_id", profile.couple_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
       
-      if (loveMap?.score !== undefined) {
-        setLoveMapScore(loveMap.score);
+      if (loveMap?.score_percentage !== undefined) {
+        setLoveMapScore(loveMap.score_percentage);
       }
 
       const { count: ifsCount } = await supabase
