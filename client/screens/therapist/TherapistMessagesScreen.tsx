@@ -59,15 +59,15 @@ export default function TherapistMessagesScreen() {
         .from("couples")
         .select(`
           id,
-          profiles!inner(first_name, last_name)
+          Couples_profiles!inner(first_name, last_name)
         `)
         .eq("therapist_id", profile.id);
       if (error) throw error;
 
       return data.map((couple: any) => ({
         id: couple.id,
-        partner1_name: couple.profiles[0]?.first_name || "Partner 1",
-        partner2_name: couple.profiles[1]?.first_name || "Partner 2",
+        partner1_name: couple.Couples_profiles?.[0]?.first_name || "Partner 1",
+        partner2_name: couple.Couples_profiles?.[1]?.first_name || "Partner 2",
         unread_count: 0,
       })) as CoupleThread[];
     },
