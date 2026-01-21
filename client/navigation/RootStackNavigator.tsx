@@ -55,11 +55,13 @@ import CoupleSetupScreen from "@/screens/auth/CoupleSetupScreen";
 import AdminDashboardScreen from "@/screens/admin/AdminDashboardScreen";
 import TherapistManagementScreen from "@/screens/admin/TherapistManagementScreen";
 import UserManagementScreen from "@/screens/admin/UserManagementScreen";
+import AllFeaturesScreen from "@/screens/couple/AllFeaturesScreen";
 
 export type RootStackParamList = {
   Auth: undefined;
   CoupleTabs: undefined;
   TherapistTabs: undefined;
+  AllFeatures: undefined;
   PauseButton: undefined;
   EchoEmpathy: undefined;
   HoldMeTight: undefined;
@@ -378,6 +380,11 @@ export default function RootStackNavigator() {
             name="CoupleSetup"
             component={CoupleSetupScreen}
             options={{ headerTitle: "Link Partner" }}
+          />
+          <Stack.Screen
+            name="AllFeatures"
+            component={AllFeaturesScreen}
+            options={{ headerTitle: "All Features" }}
           />
           <Stack.Screen
             name="AdminDashboard"

@@ -159,6 +159,19 @@ export default function ToolsScreen() {
               statusText="Connect accounts"
             />
           </GlowWidgetRow>
+
+          <GlowWidgetRow>
+            <GlowWidget
+              title="All Features"
+              subtitle="Browse everything"
+              icon="grid"
+              iconColor={GlowColors.gold}
+              backgroundColor={GlowColors.cardBrown}
+              onPress={() => handleNavigate("AllFeatures")}
+              size="large"
+              statusText="37+ relationship tools"
+            />
+          </GlowWidgetRow>
         </GlowWidgetGrid>
       </ScrollView>
     </View>
