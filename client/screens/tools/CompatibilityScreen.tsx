@@ -241,7 +241,7 @@ export default function CompatibilityScreen() {
 
     try {
       const { data: coupleProfiles } = await supabase
-        .from("profiles")
+        .from("Couples_profiles")
         .select("id, full_name")
         .eq("couple_id", profile.couple_id);
 

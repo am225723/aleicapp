@@ -52,7 +52,7 @@ export default function CoupleSetupScreen() {
       if (coupleError) throw coupleError;
 
       const { error: profileError } = await supabase
-        .from("profiles")
+        .from("Couples_profiles")
         .update({ couple_id: couple.id })
         .eq("id", profile.id);
 
@@ -86,7 +86,7 @@ export default function CoupleSetupScreen() {
       }
 
       const { error: profileError } = await supabase
-        .from("profiles")
+        .from("Couples_profiles")
         .update({ couple_id: couple.id })
         .eq("id", profile.id);
 

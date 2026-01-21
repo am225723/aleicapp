@@ -54,7 +54,7 @@ export default function UserManagementScreen() {
 
     try {
       const { data } = await supabase
-        .from("profiles")
+        .from("Couples_profiles")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(50);
@@ -112,7 +112,7 @@ export default function UserManagementScreen() {
           onPress: async () => {
             try {
               const { error } = await supabase
-                .from("profiles")
+                .from("Couples_profiles")
                 .update({ is_active: !user.is_active })
                 .eq("id", user.id);
 

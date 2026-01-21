@@ -95,7 +95,7 @@ export function AvatarUpload({ size = 56, onPress, editable = false }: AvatarUpl
       const publicUrl = urlData.publicUrl;
 
       await supabase
-        .from("profiles")
+        .from("Couples_profiles")
         .update({ avatar_url: publicUrl })
         .eq("id", profile.id);
 

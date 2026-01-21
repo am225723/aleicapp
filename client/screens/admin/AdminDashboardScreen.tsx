@@ -55,7 +55,7 @@ export default function AdminDashboardScreen() {
 
     try {
       const { count: userCount } = await supabase
-        .from("profiles")
+        .from("Couples_profiles")
         .select("*", { count: "exact", head: true });
 
       const { count: coupleCount } = await supabase
@@ -63,12 +63,12 @@ export default function AdminDashboardScreen() {
         .select("*", { count: "exact", head: true });
 
       const { count: therapistCount } = await supabase
-        .from("profiles")
+        .from("Couples_profiles")
         .select("*", { count: "exact", head: true })
         .eq("role", "therapist");
 
       const { data: recentUsers } = await supabase
-        .from("profiles")
+        .from("Couples_profiles")
         .select("id, email, created_at")
         .order("created_at", { ascending: false })
         .limit(5);

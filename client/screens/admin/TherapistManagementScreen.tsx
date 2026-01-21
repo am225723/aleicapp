@@ -51,7 +51,7 @@ export default function TherapistManagementScreen() {
 
     try {
       const { data } = await supabase
-        .from("profiles")
+        .from("Couples_profiles")
         .select("*")
         .eq("role", "therapist")
         .order("created_at", { ascending: false });
@@ -107,7 +107,7 @@ export default function TherapistManagementScreen() {
           onPress: async () => {
             try {
               const { error } = await supabase
-                .from("profiles")
+                .from("Couples_profiles")
                 .update({ is_active: !therapist.is_active })
                 .eq("id", therapist.id);
 
