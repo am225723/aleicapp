@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { StyleSheet, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -28,10 +28,10 @@ import { AuthProvider } from "@/contexts/AuthContext";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const FONT_LOAD_TIMEOUT = 10000;
+const FONT_LOAD_TIMEOUT = 5000;
 
 export default function App() {
-  const [fontTimedOut, setFontTimedOut] = useState(false);
+  const [appIsReady, setAppIsReady] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
     Nunito_400Regular,
     Nunito_600SemiBold,
@@ -43,47 +43,70 @@ export default function App() {
   });
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      console.log("Font loading timed out, proceeding anyway");
-      setFontTimedOut(true);
-    }, FONT_LOAD_TIMEOUT);
+    async function prepare() {
+      try {
+        const timeoutPromise = new Promise<void>((resolve) => {
+          setTimeout(() => {
+            console.log("Font loading timed out, proceeding anyway");
+            resolve();
+          }, FONT_LOAD_TIMEOUT);
+        });
 
-    return () => clearTimeout(timeout);
-  }, []);
+        const fontPromise = new Promise<void>((resolve) => {
+          const checkFonts = () => {
+            if (fontsLoaded || fontError) {
+              resolve();
+            } else {
+              setTimeout(checkFonts, 100);
+            }
+          };
+          checkFonts();
+        });
 
-  useEffect(() => {
-    const shouldHideSplash = fontsLoaded || fontError || fontTimedOut;
-    
-    if (shouldHideSplash) {
-      SplashScreen.hideAsync().catch((err) => {
-        console.log("Error hiding splash screen:", err);
-      });
+        await Promise.race([fontPromise, timeoutPromise]);
+      } catch (e) {
+        console.log("Error during app preparation:", e);
+      } finally {
+        setAppIsReady(true);
+      }
     }
-  }, [fontsLoaded, fontError, fontTimedOut]);
 
-  const readyToRender = fontsLoaded || fontError || fontTimedOut;
+    prepare();
+  }, [fontsLoaded, fontError]);
 
-  if (!readyToRender) {
+  const onLayoutRootView = useCallback(async () => {
+    if (appIsReady) {
+      try {
+        await SplashScreen.hideAsync();
+      } catch (e) {
+        console.log("Error hiding splash screen:", e);
+      }
+    }
+  }, [appIsReady]);
+
+  if (!appIsReady) {
     return null;
   }
 
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <SafeAreaProvider>
-            <GestureHandlerRootView style={styles.root}>
-              <KeyboardProvider>
-                <NavigationContainer>
-                  <RootStackNavigator />
-                </NavigationContainer>
-                <StatusBar style="auto" />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </SafeAreaProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <View style={styles.root} onLayout={onLayoutRootView}>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <SafeAreaProvider>
+              <GestureHandlerRootView style={styles.root}>
+                <KeyboardProvider>
+                  <NavigationContainer>
+                    <RootStackNavigator />
+                  </NavigationContainer>
+                  <StatusBar style="auto" />
+                </KeyboardProvider>
+              </GestureHandlerRootView>
+            </SafeAreaProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </View>
   );
 }
 

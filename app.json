@@ -8,9 +8,29 @@
     "scheme": "aleic",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A1A1C"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.aleic.app"
+      "bundleIdentifier": "com.aleic.app",
+      "splash": {
+        "image": "./assets/images/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#1A1A1C",
+        "dark": {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#1A1A1C"
+        },
+        "tablet": {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#1A1A1C"
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +38,12 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.aleic.app"
+      "package": "com.aleic.app",
+      "splash": {
+        "image": "./assets/images/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#1A1A1C"
+      }
     },
     "web": {
       "output": "single",
@@ -29,10 +54,11 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 300,
+          "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#1A1A1C",
           "dark": {
+            "image": "./assets/images/splash-icon.png",
             "backgroundColor": "#1A1A1C"
           }
         }
