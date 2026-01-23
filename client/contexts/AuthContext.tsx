@@ -32,6 +32,8 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const AUTH_TIMEOUT = 8000;
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -39,19 +41,51 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setIsLoading(false);
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+
+    const initAuth = async () => {
+      try {
+        timeoutId = setTimeout(() => {
+          if (isMounted && isLoading) {
+            console.log("Auth initialization timed out, proceeding without session");
+            setIsLoading(false);
+          }
+        }, AUTH_TIMEOUT);
+
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
+        
+        if (error) {
+          console.log("Error getting session:", error.message);
+          setIsLoading(false);
+          return;
+        }
+
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+        
+        if (initialSession?.user) {
+          await fetchProfile(initialSession.user.id);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.log("Auth initialization error:", error);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-    });
+    };
+
+    initAuth();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -62,7 +96,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchProfile = async (userId: string) => {
@@ -96,13 +134,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setProfile(insertedProfile);
           }
         } else {
-          console.error("Error fetching profile:", error);
+          console.log("Error fetching profile:", error.message);
         }
       } else {
         setProfile(data);
       }
     } catch (error) {
-      console.error("Error in fetchProfile:", error);
+      console.log("Error in fetchProfile:", error);
     } finally {
       setIsLoading(false);
     }

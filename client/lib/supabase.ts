@@ -6,25 +6,42 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
 
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn("Supabase credentials not configured. Some features may not work.");
+}
+
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string): Promise<string | null> => {
-    if (Platform.OS === "web") {
-      return await AsyncStorage.getItem(key);
+    try {
+      if (Platform.OS === "web") {
+        return await AsyncStorage.getItem(key);
+      }
+      return await SecureStore.getItemAsync(key);
+    } catch (error) {
+      console.log("Error reading from secure storage:", error);
+      return null;
     }
-    return await SecureStore.getItemAsync(key);
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    if (Platform.OS === "web") {
-      await AsyncStorage.setItem(key, value);
-    } else {
-      await SecureStore.setItemAsync(key, value);
+    try {
+      if (Platform.OS === "web") {
+        await AsyncStorage.setItem(key, value);
+      } else {
+        await SecureStore.setItemAsync(key, value);
+      }
+    } catch (error) {
+      console.log("Error writing to secure storage:", error);
     }
   },
   removeItem: async (key: string): Promise<void> => {
-    if (Platform.OS === "web") {
-      await AsyncStorage.removeItem(key);
-    } else {
-      await SecureStore.deleteItemAsync(key);
+    try {
+      if (Platform.OS === "web") {
+        await AsyncStorage.removeItem(key);
+      } else {
+        await SecureStore.deleteItemAsync(key);
+      }
+    } catch (error) {
+      console.log("Error removing from secure storage:", error);
     }
   },
 };

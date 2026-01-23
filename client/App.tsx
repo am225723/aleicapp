@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -26,9 +26,12 @@ import RootStackNavigator from "@/navigation/RootStackNavigator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const FONT_LOAD_TIMEOUT = 10000;
 
 export default function App() {
+  const [fontTimedOut, setFontTimedOut] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
     Nunito_400Regular,
     Nunito_600SemiBold,
@@ -40,12 +43,27 @@ export default function App() {
   });
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
+    const timeout = setTimeout(() => {
+      console.log("Font loading timed out, proceeding anyway");
+      setFontTimedOut(true);
+    }, FONT_LOAD_TIMEOUT);
 
-  if (!fontsLoaded && !fontError) {
+    return () => clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    const shouldHideSplash = fontsLoaded || fontError || fontTimedOut;
+    
+    if (shouldHideSplash) {
+      SplashScreen.hideAsync().catch((err) => {
+        console.log("Error hiding splash screen:", err);
+      });
+    }
+  }, [fontsLoaded, fontError, fontTimedOut]);
+
+  const readyToRender = fontsLoaded || fontError || fontTimedOut;
+
+  if (!readyToRender) {
     return null;
   }
 
