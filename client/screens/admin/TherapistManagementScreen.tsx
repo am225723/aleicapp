@@ -33,9 +33,10 @@ export default function TherapistManagementScreen() {
 
     try {
       const { data: roleData } = await supabase
-        .from("user_roles")
+        .from("Couples_user_roles")
         .select("role")
         .eq("user_id", profile.id)
+        .eq("is_active", true)
         .single();
 
       if (roleData?.role === "admin") {

@@ -37,9 +37,10 @@ export default function AdminDashboardScreen() {
 
     try {
       const { data: roleData } = await supabase
-        .from("user_roles")
+        .from("Couples_user_roles")
         .select("role")
         .eq("user_id", profile.id)
+        .eq("is_active", true)
         .single();
 
       if (roleData?.role === "admin") {
@@ -59,7 +60,7 @@ export default function AdminDashboardScreen() {
         .select("*", { count: "exact", head: true });
 
       const { count: coupleCount } = await supabase
-        .from("couples")
+        .from("Couples_couples")
         .select("*", { count: "exact", head: true });
 
       const { count: therapistCount } = await supabase

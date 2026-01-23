@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -7,7 +7,7 @@ import {
   Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -18,26 +18,89 @@ import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
-import { getCouples, CoupleData } from "@/lib/storage";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+interface CoupleData {
+  id: string;
+  partner1_id: string;
+  partner2_id: string | null;
+  partner1_name: string;
+  partner2_name: string;
+  status: string;
+  last_active: string;
+  created_at: string;
+}
 
 export default function CouplesListScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
+  const { profile } = useAuth();
 
   const [couples, setCouples] = useState<CoupleData[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadCouples();
-  }, []);
+  const loadCouples = useCallback(async () => {
+    if (!profile?.id) return;
 
-  async function loadCouples() {
-    const data = await getCouples();
-    setCouples(data);
-  }
+    try {
+      const { data: couplesData, error } = await supabase
+        .from("Couples_couples")
+        .select("*")
+        .eq("therapist_id", profile.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.log("Error loading couples:", error.message);
+        return;
+      }
+
+      if (!couplesData || couplesData.length === 0) {
+        setCouples([]);
+        return;
+      }
+
+      const partnerIds = [
+        ...couplesData.map(c => c.partner1_id),
+        ...couplesData.filter(c => c.partner2_id).map(c => c.partner2_id),
+      ].filter(Boolean);
+
+      const { data: profiles } = await supabase
+        .from("Couples_profiles")
+        .select("id, display_name, email")
+        .in("id", partnerIds);
+
+      const profileMap = new Map(
+        (profiles || []).map(p => [p.id, p.display_name || p.email || "Partner"])
+      );
+
+      const enrichedCouples: CoupleData[] = couplesData.map(couple => ({
+        id: couple.id,
+        partner1_id: couple.partner1_id,
+        partner2_id: couple.partner2_id,
+        partner1_name: profileMap.get(couple.partner1_id) || "Partner 1",
+        partner2_name: couple.partner2_id 
+          ? profileMap.get(couple.partner2_id) || "Partner 2"
+          : "Awaiting Partner",
+        status: couple.status,
+        last_active: couple.updated_at || couple.created_at,
+        created_at: couple.created_at,
+      }));
+
+      setCouples(enrichedCouples);
+    } catch (error) {
+      console.log("Error loading couples:", error);
+    }
+  }, [profile?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCouples();
+    }, [loadCouples])
+  );
 
   async function handleRefresh() {
     setIsRefreshing(true);
@@ -63,7 +126,7 @@ export default function CouplesListScreen() {
               ]}
             >
               <ThemedText type="h4" style={{ color: Colors.light.link }}>
-                {item.partner1Name.charAt(0)}
+                {item.partner1_name.charAt(0).toUpperCase()}
               </ThemedText>
             </View>
             <View
@@ -74,18 +137,43 @@ export default function CouplesListScreen() {
               ]}
             >
               <ThemedText type="h4" style={{ color: Colors.light.accent }}>
-                {item.partner2Name.charAt(0)}
+                {item.partner2_name.charAt(0).toUpperCase()}
               </ThemedText>
             </View>
           </View>
 
           <View style={styles.coupleInfo}>
             <ThemedText type="h4">
-              {item.partner1Name} & {item.partner2Name}
+              {item.partner1_name} & {item.partner2_name}
             </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
-              Last active: {new Date(item.lastActive).toLocaleDateString()}
-            </ThemedText>
+            <View style={styles.statusRow}>
+              <View
+                style={[
+                  styles.statusBadge,
+                  {
+                    backgroundColor:
+                      item.status === "active"
+                        ? Colors.light.success + "20"
+                        : Colors.light.warning + "20",
+                  },
+                ]}
+              >
+                <ThemedText
+                  type="small"
+                  style={{
+                    color:
+                      item.status === "active"
+                        ? Colors.light.success
+                        : Colors.light.warning,
+                  }}
+                >
+                  {item.status === "active" ? "Active" : "Pending"}
+                </ThemedText>
+              </View>
+              <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.sm }}>
+                {new Date(item.last_active).toLocaleDateString()}
+              </ThemedText>
+            </View>
           </View>
 
           <Feather name="chevron-right" size={20} color={theme.textSecondary} />
@@ -181,5 +269,15 @@ const styles = StyleSheet.create({
   },
   coupleInfo: {
     flex: 1,
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: Spacing.xs,
+  },
+  statusBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
   },
 });

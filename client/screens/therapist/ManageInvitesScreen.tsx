@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -8,6 +8,7 @@ import {
   Share,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -19,7 +20,23 @@ import { EmptyState } from "@/components/EmptyState";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors, BorderRadius } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
-import { getInvites, addInvite, Invite } from "@/lib/storage";
+import { supabase } from "@/lib/supabase";
+
+interface Invite {
+  id: string;
+  code: string;
+  therapist_id: string;
+  couple_id: string | null;
+  expires_at: string;
+  used_by: string | null;
+  used_at: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+function generateCode(): string {
+  return Math.random().toString(36).substr(2, 8).toUpperCase();
+}
 
 export default function ManageInvitesScreen() {
   const insets = useSafeAreaInsets();
@@ -30,14 +47,32 @@ export default function ManageInvitesScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
-  useEffect(() => {
-    loadInvites();
-  }, []);
+  const loadInvites = useCallback(async () => {
+    if (!profile?.id) return;
 
-  async function loadInvites() {
-    const data = await getInvites(profile?.id);
-    setInvites(data);
-  }
+    try {
+      const { data, error } = await supabase
+        .from("Couples_therapist_invites")
+        .select("*")
+        .eq("therapist_id", profile.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.log("Error loading invites:", error.message);
+        return;
+      }
+
+      setInvites(data || []);
+    } catch (error) {
+      console.log("Error loading invites:", error);
+    }
+  }, [profile?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadInvites();
+    }, [loadInvites])
+  );
 
   async function handleRefresh() {
     setIsRefreshing(true);
@@ -47,6 +82,8 @@ export default function ManageInvitesScreen() {
   }
 
   async function handleCreateInvite() {
+    if (!profile?.id) return;
+
     setIsCreating(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -54,14 +91,25 @@ export default function ManageInvitesScreen() {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
 
-      await addInvite({
-        therapistId: profile?.id || "therapist-1",
-        expiresAt: expiresAt.toISOString(),
-      });
+      const { error } = await supabase
+        .from("Couples_therapist_invites")
+        .insert([{
+          code: generateCode(),
+          therapist_id: profile.id,
+          expires_at: expiresAt.toISOString(),
+          is_active: true,
+        }]);
+
+      if (error) {
+        console.log("Error creating invite:", error.message);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
 
       await loadInvites();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
+      console.log("Error creating invite:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsCreating(false);
@@ -77,7 +125,7 @@ export default function ManageInvitesScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await Share.share({
-        message: `Join me on Couples Therapy! Use this invitation code to connect: ${code}`,
+        message: `Join me on A.L.E.I.C.! Use this invitation code to connect: ${code}`,
       });
     } catch (error) {
       console.log("Share error:", error);
@@ -87,8 +135,8 @@ export default function ManageInvitesScreen() {
   const isExpired = (expiresAt: string) => new Date(expiresAt) < new Date();
 
   const renderInvite = ({ item }: { item: Invite }) => {
-    const expired = isExpired(item.expiresAt);
-    const used = !!item.usedBy;
+    const expired = isExpired(item.expires_at);
+    const used = !!item.used_by;
 
     return (
       <Card elevation={1} style={styles.inviteCard}>
@@ -165,7 +213,7 @@ export default function ManageInvitesScreen() {
         </View>
 
         <ThemedText type="small" style={{ color: theme.textSecondary }}>
-          Expires: {new Date(item.expiresAt).toLocaleDateString()}
+          Expires: {new Date(item.expires_at).toLocaleDateString()}
         </ThemedText>
 
         {!expired && !used ? (
