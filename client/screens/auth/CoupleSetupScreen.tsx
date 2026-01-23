@@ -41,10 +41,11 @@ export default function CoupleSetupScreen() {
       const code = generateCode();
 
       const { data: couple, error: coupleError } = await supabase
-        .from("couples")
+        .from("Couples_couples")
         .insert({
           invite_code: code,
-          created_by: profile.id,
+          partner1_id: profile.id,
+          status: "pending",
         })
         .select()
         .single();
@@ -75,7 +76,7 @@ export default function CoupleSetupScreen() {
     setIsLoading(true);
     try {
       const { data: couple, error: findError } = await supabase
-        .from("couples")
+        .from("Couples_couples")
         .select("*")
         .eq("invite_code", inviteCode.trim().toUpperCase())
         .single();
@@ -84,6 +85,16 @@ export default function CoupleSetupScreen() {
         Alert.alert("Invalid Code", "No couple found with this invite code.");
         return;
       }
+
+      const { error: coupleUpdateError } = await supabase
+        .from("Couples_couples")
+        .update({ 
+          partner2_id: profile.id,
+          status: "active",
+        })
+        .eq("id", couple.id);
+
+      if (coupleUpdateError) throw coupleUpdateError;
 
       const { error: profileError } = await supabase
         .from("Couples_profiles")

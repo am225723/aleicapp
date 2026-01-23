@@ -55,19 +55,30 @@ export default function TherapistMessagesScreen() {
     queryKey: ["therapist-couples", profile?.id],
     queryFn: async () => {
       if (!profile) return [];
-      const { data, error } = await supabase
-        .from("couples")
-        .select(`
-          id,
-          Couples_profiles!inner(first_name, last_name)
-        `)
+      const { data: couplesData, error } = await supabase
+        .from("Couples_couples")
+        .select("id, partner1_id, partner2_id")
         .eq("therapist_id", profile.id);
       if (error) throw error;
 
-      return data.map((couple: any) => ({
+      const partnerIds = [
+        ...couplesData.map(c => c.partner1_id),
+        ...couplesData.filter(c => c.partner2_id).map(c => c.partner2_id),
+      ].filter(Boolean);
+
+      const { data: profiles } = await supabase
+        .from("Couples_profiles")
+        .select("id, display_name, email")
+        .in("id", partnerIds);
+
+      const profileMap = new Map(
+        (profiles || []).map(p => [p.id, p.display_name || p.email?.split("@")[0] || "Partner"])
+      );
+
+      return couplesData.map((couple: any) => ({
         id: couple.id,
-        partner1_name: couple.Couples_profiles?.[0]?.first_name || "Partner 1",
-        partner2_name: couple.Couples_profiles?.[1]?.first_name || "Partner 2",
+        partner1_name: profileMap.get(couple.partner1_id) || "Partner 1",
+        partner2_name: couple.partner2_id ? profileMap.get(couple.partner2_id) || "Partner 2" : "Awaiting",
         unread_count: 0,
       })) as CoupleThread[];
     },
