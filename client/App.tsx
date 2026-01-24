@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -74,13 +74,17 @@ export default function App() {
     prepare();
   }, [fontsLoaded, fontError]);
 
-  const onLayoutRootView = useCallback(async () => {
+  // Hide splash screen directly when app is ready - don't rely on onLayout
+  useEffect(() => {
     if (appIsReady) {
-      try {
-        await SplashScreen.hideAsync();
-      } catch (e) {
-        console.log("Error hiding splash screen:", e);
-      }
+      const hideSplash = async () => {
+        try {
+          await SplashScreen.hideAsync();
+        } catch (e) {
+          console.log("Error hiding splash screen:", e);
+        }
+      };
+      hideSplash();
     }
   }, [appIsReady]);
 
@@ -89,7 +93,7 @@ export default function App() {
   }
 
   return (
-    <View style={styles.root} onLayout={onLayoutRootView}>
+    <View style={styles.root}>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
