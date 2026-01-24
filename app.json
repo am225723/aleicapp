@@ -1,8 +1,10 @@
 {
   "expo": {
-    "name": "A.L.E.I.C.",
+    "name": "A.L.E.I.C",
     "slug": "aleic",
     "version": "1.0.0",
+    "description": "Couples therapy app for relationship growth",
+    "primaryColor": "#C9A962",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "aleic",
@@ -39,6 +41,8 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.aleic.app",
+      "versionCode": 1,
+      "permissions": [],
       "splash": {
         "image": "./assets/images/splash-icon.png",
         "resizeMode": "contain",
