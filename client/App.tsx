@@ -28,7 +28,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const FONT_LOAD_TIMEOUT = 5000;
+const FONT_LOAD_TIMEOUT = 3000;
+const MAX_SPLASH_TIME = 4000;
 
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
@@ -43,6 +44,21 @@ export default function App() {
   });
 
   useEffect(() => {
+    let didFinish = false;
+
+    const forceReady = () => {
+      if (!didFinish) {
+        didFinish = true;
+        setAppIsReady(true);
+        SplashScreen.hideAsync().catch(() => {});
+      }
+    };
+
+    const maxTimeout = setTimeout(() => {
+      console.log("Max splash time reached, forcing app ready");
+      forceReady();
+    }, MAX_SPLASH_TIME);
+
     async function prepare() {
       try {
         const timeoutPromise = new Promise<void>((resolve) => {
@@ -53,6 +69,10 @@ export default function App() {
         });
 
         const fontPromise = new Promise<void>((resolve) => {
+          if (fontsLoaded || fontError) {
+            resolve();
+            return;
+          }
           const checkFonts = () => {
             if (fontsLoaded || fontError) {
               resolve();
@@ -67,24 +87,21 @@ export default function App() {
       } catch (e) {
         console.log("Error during app preparation:", e);
       } finally {
-        setAppIsReady(true);
+        forceReady();
+        clearTimeout(maxTimeout);
       }
     }
 
     prepare();
+
+    return () => {
+      clearTimeout(maxTimeout);
+    };
   }, [fontsLoaded, fontError]);
 
-  // Hide splash screen directly when app is ready - don't rely on onLayout
   useEffect(() => {
     if (appIsReady) {
-      const hideSplash = async () => {
-        try {
-          await SplashScreen.hideAsync();
-        } catch (e) {
-          console.log("Error hiding splash screen:", e);
-        }
-      };
-      hideSplash();
+      SplashScreen.hideAsync().catch(() => {});
     }
   }, [appIsReady]);
 
