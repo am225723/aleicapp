@@ -32,6 +32,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#1A1A1C"
         }
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
