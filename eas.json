@@ -21,10 +21,15 @@
       },
       "ios": {
         "resourceClass": "m-medium"
+        
       }
     }
   },
   "submit": {
-    "production": {}
+      "production": {}
+      "ios": {
+          "ascAppid": "6758112883"
+      }
   }
 }
+
