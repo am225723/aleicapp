@@ -1,6 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
@@ -10,45 +8,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn("Supabase credentials not configured. Some features may not work.");
 }
 
-const ExpoSecureStoreAdapter = {
-  getItem: async (key: string): Promise<string | null> => {
-    try {
-      if (Platform.OS === "web") {
-        return await AsyncStorage.getItem(key);
-      }
-      return await SecureStore.getItemAsync(key);
-    } catch (error) {
-      console.log("Error reading from secure storage:", error);
-      return null;
-    }
-  },
-  setItem: async (key: string, value: string): Promise<void> => {
-    try {
-      if (Platform.OS === "web") {
-        await AsyncStorage.setItem(key, value);
-      } else {
-        await SecureStore.setItemAsync(key, value);
-      }
-    } catch (error) {
-      console.log("Error writing to secure storage:", error);
-    }
-  },
-  removeItem: async (key: string): Promise<void> => {
-    try {
-      if (Platform.OS === "web") {
-        await AsyncStorage.removeItem(key);
-      } else {
-        await SecureStore.deleteItemAsync(key);
-      }
-    } catch (error) {
-      console.log("Error removing from secure storage:", error);
-    }
-  },
-};
-
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: ExpoSecureStoreAdapter,
+    // Use AsyncStorage for Supabase session persistence on React Native.
+    // SecureStore is better suited for small secrets, but can be unreliable for larger auth payloads.
+    storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

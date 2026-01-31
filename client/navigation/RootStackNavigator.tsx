@@ -1,7 +1,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "@/contexts/AuthContext";
-import { ActivityIndicator, View, StyleSheet } from "react-native";
+import { ActivityIndicator, View, StyleSheet, Text, Pressable } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 
@@ -111,8 +111,22 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootStackNavigator() {
-  const { session, profile, isLoading } = useAuth();
+  const { session, profile, isLoading, signOut } = useAuth();
   const screenOptions = useScreenOptions();
+
+  const [profileTimedOut, setProfileTimedOut] = React.useState(false);
+
+  React.useEffect(() => {
+    // If we have a session but no profile yet, avoid flashing back to the Auth stack.
+    // Give profile fetch a moment, then show a friendly fallback.
+    if (session && !profile) {
+      setProfileTimedOut(false);
+      const t = setTimeout(() => setProfileTimedOut(true), 12000);
+      return () => clearTimeout(t);
+    }
+    setProfileTimedOut(false);
+    return;
+  }, [session, profile]);
   const { theme } = useTheme();
 
   if (isLoading) {
@@ -123,7 +137,9 @@ export default function RootStackNavigator() {
     );
   }
 
-  return (
+  // If we have a session but profile is still loading/creating, we let the app render.
+// Some screens may show limited info until profile loads.
+return (
     <Stack.Navigator screenOptions={screenOptions}>
       {!session || !profile ? (
         <Stack.Screen

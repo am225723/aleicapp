@@ -58,7 +58,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (!isMounted) return;
         
         if (error) {
-          console.log("Error getting session:", error.message);
+          console.log("Error getting session:", { message: error.message, code: (error as any).code, details: (error as any).details });
           setIsLoading(false);
           return;
         }
@@ -67,11 +67,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(initialSession?.user ?? null);
         
         if (initialSession?.user) {
-          await fetchProfile(initialSession.user.id);
+          await fetchProfile(initialSession.user.id, initialSession.user.email);
         } else {
           setIsLoading(false);
         }
-      } catch (error) {
+        clearTimeout(timeoutId);
+
+    } catch (error) {
         console.log("Auth initialization error:", error);
         if (isMounted) {
           setIsLoading(false);
@@ -89,7 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user.email);
       } else {
         setProfile(null);
         setIsLoading(false);
@@ -103,7 +105,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, email?: string) => {
     try {
       const { data, error } = await supabase
         .from("Couples_profiles")
@@ -113,7 +115,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (error) {
         if (error.code === "PGRST116") {
-          const userEmail = user?.email || session?.user?.email || "";
+          const userEmail = email || user?.email || session?.user?.email || "";
           const newProfile: Partial<Profile> = {
             id: userId,
             email: userEmail,
@@ -134,7 +136,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setProfile(insertedProfile);
           }
         } else {
-          console.log("Error fetching profile:", error.message);
+          console.log("Error fetching profile:", { message: error.message, code: (error as any).code, details: (error as any).details, hint: (error as any).hint });
         }
       } else {
         setProfile(data);
@@ -212,7 +214,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         user,
         profile,
         isLoading,
-        isAuthenticated: session !== null && profile !== null,
+        isAuthenticated: session !== null,
         signIn,
         signUp,
         signOut,
