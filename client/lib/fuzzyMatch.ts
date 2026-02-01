@@ -24,11 +24,11 @@ export function normalize(s: string): string {
 export function getBigrams(s: string): Set<string> {
   const normalized = normalize(s).replace(/\s/g, "");
   const bigrams = new Set<string>();
-  
+
   for (let i = 0; i < normalized.length - 1; i++) {
     bigrams.add(normalized.substring(i, i + 2));
   }
-  
+
   return bigrams;
 }
 
@@ -47,9 +47,7 @@ export function getTokens(s: string): Set<string> {
 function setIntersection<T>(a: Set<T>, b: Set<T>): Set<T> {
   const result = new Set<T>();
   for (const item of a) {
-    if (b.has(item)) {
-      result.add(item);
-    }
+    if (b.has(item)) result.add(item);
   }
   return result;
 }
@@ -59,9 +57,7 @@ function setIntersection<T>(a: Set<T>, b: Set<T>): Set<T> {
  */
 function setUnion<T>(a: Set<T>, b: Set<T>): Set<T> {
   const result = new Set<T>(a);
-  for (const item of b) {
-    result.add(item);
-  }
+  for (const item of b) result.add(item);
   return result;
 }
 
@@ -72,15 +68,10 @@ function setUnion<T>(a: Set<T>, b: Set<T>): Set<T> {
 export function bigramDice(a: string, b: string): number {
   const bigramsA = getBigrams(a);
   const bigramsB = getBigrams(b);
-  
-  if (bigramsA.size === 0 && bigramsB.size === 0) {
-    return 1; // Both empty = match
-  }
-  
-  if (bigramsA.size === 0 || bigramsB.size === 0) {
-    return 0; // One empty = no match
-  }
-  
+
+  if (bigramsA.size === 0 && bigramsB.size === 0) return 1; // Both empty = match
+  if (bigramsA.size === 0 || bigramsB.size === 0) return 0; // One empty = no match
+
   const intersection = setIntersection(bigramsA, bigramsB);
   return (2 * intersection.size) / (bigramsA.size + bigramsB.size);
 }
@@ -92,18 +83,13 @@ export function bigramDice(a: string, b: string): number {
 export function tokenJaccard(a: string, b: string): number {
   const tokensA = getTokens(a);
   const tokensB = getTokens(b);
-  
-  if (tokensA.size === 0 && tokensB.size === 0) {
-    return 1; // Both empty = match
-  }
-  
-  if (tokensA.size === 0 || tokensB.size === 0) {
-    return 0; // One empty = no match
-  }
-  
+
+  if (tokensA.size === 0 && tokensB.size === 0) return 1; // Both empty = match
+  if (tokensA.size === 0 || tokensB.size === 0) return 0; // One empty = no match
+
   const intersection = setIntersection(tokensA, tokensB);
   const union = setUnion(tokensA, tokensB);
-  
+
   return intersection.size / union.size;
 }
 
@@ -114,8 +100,26 @@ export function tokenJaccard(a: string, b: string): number {
 export function fuzzyMatch(a: string, b: string): boolean {
   const dice = bigramDice(a, b);
   const jaccard = tokenJaccard(a, b);
-  
   return dice >= 0.8 || jaccard >= 0.75;
+}
+
+/**
+ * Backwards-compat exports expected by screens:
+ * - isFuzzyMatch
+ * - getFuzzyScore
+ */
+export function isFuzzyMatch(a: string, b: string): boolean {
+  return fuzzyMatch(a, b);
+}
+
+/**
+ * A single numeric score (0..1) for ranking/feedback.
+ * Uses the stronger of the two similarity metrics.
+ */
+export function getFuzzyScore(a: string, b: string): number {
+  const dice = bigramDice(a, b);
+  const jaccard = tokenJaccard(a, b);
+  return Math.max(dice, jaccard);
 }
 
 /**
@@ -128,7 +132,7 @@ export function getSimilarityScores(a: string, b: string): {
 } {
   const dice = bigramDice(a, b);
   const jaccard = tokenJaccard(a, b);
-  
+
   return {
     dice,
     jaccard,

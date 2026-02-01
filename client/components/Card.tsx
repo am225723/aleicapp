@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Pressable, ViewStyle } from "react-native";
+import { StyleSheet, Pressable, StyleProp, ViewStyle } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -17,7 +17,7 @@ interface CardProps {
   description?: string;
   children?: React.ReactNode;
   onPress?: () => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 const springConfig: WithSpringConfig = {
@@ -28,10 +28,7 @@ const springConfig: WithSpringConfig = {
   energyThreshold: 0.001,
 };
 
-const getBackgroundColorForElevation = (
-  elevation: number,
-  theme: any,
-): string => {
+const getBackgroundColorForElevation = (elevation: number, theme: any): string => {
   switch (elevation) {
     case 1:
       return theme.backgroundDefault;
@@ -78,9 +75,7 @@ export function Card({
       onPressOut={handlePressOut}
       style={[
         styles.card,
-        {
-          backgroundColor: cardBackgroundColor,
-        },
+        { backgroundColor: cardBackgroundColor },
         animatedStyle,
         style,
       ]}
@@ -90,11 +85,13 @@ export function Card({
           {title}
         </ThemedText>
       ) : null}
+
       {description ? (
         <ThemedText type="small" style={styles.cardDescription}>
           {description}
         </ThemedText>
       ) : null}
+
       {children}
     </AnimatedPressable>
   );
