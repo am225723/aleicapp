@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -7,6 +7,7 @@ import {
   Text,
   Image,
   StatusBar,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -15,6 +16,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import * as Haptics from "expo-haptics";
+import { Feather } from "@expo/vector-icons";
 
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,12 +44,44 @@ const COLORS = {
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
-  const { signIn } = useAuth();
+  const { signIn, isBiometricAvailable, isBiometricEnabled, signInWithBiometric, getBiometricTypeName } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (isBiometricEnabled && Platform.OS !== "web") {
+      handleBiometricLogin();
+    }
+  }, [isBiometricEnabled]);
+
+  const handleBiometricLogin = async () => {
+    if (!isBiometricEnabled || isBiometricLoading) return;
+
+    setIsBiometricLoading(true);
+    setError("");
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      const { error: authError } = await signInWithBiometric();
+
+      if (authError) {
+        if (authError.message !== "Biometric authentication failed") {
+          setError(authError.message);
+        }
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsBiometricLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -203,12 +237,33 @@ export default function LoginScreen() {
                   pressed && styles.buttonPressed,
                 ]}
                 onPress={handleLogin}
-                disabled={isLoading}
+                disabled={isLoading || isBiometricLoading}
               >
                 <Text style={styles.signInButtonText}>
                   {isLoading ? "SIGNING IN..." : "SIGN IN"}
                 </Text>
               </Pressable>
+
+              {isBiometricEnabled && Platform.OS !== "web" ? (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.biometricButton,
+                    pressed && styles.buttonPressed,
+                  ]}
+                  onPress={handleBiometricLogin}
+                  disabled={isBiometricLoading || isLoading}
+                >
+                  <Feather
+                    name={getBiometricTypeName().includes("Face") ? "smile" : "smartphone"}
+                    size={20}
+                    color={COLORS.goldPrimary}
+                    style={styles.biometricIcon}
+                  />
+                  <Text style={styles.biometricButtonText}>
+                    {isBiometricLoading ? "AUTHENTICATING..." : `SIGN IN WITH ${getBiometricTypeName().toUpperCase()}`}
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
 
             <View style={styles.divider}>
@@ -364,6 +419,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.goldPrimary,
     letterSpacing: 3,
+  },
+  biometricButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.6)",
+    borderRadius: 50,
+    paddingVertical: 14,
+    marginTop: Spacing.md,
+    backgroundColor: "rgba(212, 175, 55, 0.08)",
+  },
+  biometricIcon: {
+    marginRight: Spacing.sm,
+  },
+  biometricButtonText: {
+    fontFamily: "Montserrat_600SemiBold",
+    fontSize: 11,
+    color: COLORS.goldPrimary,
+    letterSpacing: 2,
   },
   divider: {
     flexDirection: "row",
