@@ -95,6 +95,7 @@ client/
 - Haptic feedback on key interactions
 - Image attachments for gratitude/journal entries
 - Role-based navigation (couple vs therapist)
+- Biometric authentication (Face ID/Touch ID on iOS, fingerprint on Android)
 
 ## Running the App
 1. **Backend**: `npm run server:dev` (port 5000)
@@ -176,6 +177,12 @@ All tables have RLS policies for proper data isolation by couple_id.
   - Added Date Night Generator screen with AI-powered suggestions via Supabase Edge Function
   - Added Date Night widget to Home dashboard
   - Date Night Generator uses Perplexity API for location-based personalized suggestions
+- February 2026: Added biometric authentication
+  - Integrated expo-local-authentication for Face ID/Touch ID (iOS) and fingerprint (Android)
+  - Secure credential storage using expo-secure-store
+  - Biometric login button on LoginScreen with auto-trigger when enabled
+  - Biometric toggle in Settings screen with password verification for enrollment
+  - Configured app.json with NSFaceIDUsageDescription (iOS) and USE_BIOMETRIC permission (Android)
 - January 2026: Migrated core features from AsyncStorage to Supabase
   - Created 7 new Couples_* tables with RLS policies
   - Built dedicated service modules in client/services/
