@@ -1,6 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { Session, User, AuthError } from "@supabase/supabase-js";
+import * as LocalAuthentication from "expo-local-authentication";
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 import { supabase } from "@/lib/supabase";
+
+const CREDENTIALS_KEY = "aleic_biometric_credentials";
+const BIOMETRIC_ENABLED_KEY = "aleic_biometric_enabled";
+
+interface BiometricCredentials {
+  email: string;
+  password: string;
+}
 
 export type UserRole = "client" | "therapist";
 
@@ -24,6 +35,13 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData: { full_name: string; role: UserRole }) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  isBiometricAvailable: boolean;
+  isBiometricEnabled: boolean;
+  biometricType: LocalAuthentication.AuthenticationType | null;
+  enableBiometric: (email: string, password: string) => Promise<boolean>;
+  disableBiometric: () => Promise<void>;
+  signInWithBiometric: () => Promise<{ error: AuthError | null }>;
+  getBiometricTypeName: () => string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,6 +57,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
+  const [biometricType, setBiometricType] = useState<LocalAuthentication.AuthenticationType | null>(null);
+
+  useEffect(() => {
+    checkBiometricSupport();
+  }, []);
+
+  const checkBiometricSupport = async () => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      const available = hasHardware && isEnrolled;
+      setIsBiometricAvailable(available);
+
+      if (available) {
+        const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+        if (supportedTypes.length > 0) {
+          if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+            setBiometricType(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
+          } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+            setBiometricType(LocalAuthentication.AuthenticationType.FINGERPRINT);
+          } else {
+            setBiometricType(supportedTypes[0]);
+          }
+        }
+      }
+
+      const enabledStatus = await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY);
+      setIsBiometricEnabled(enabledStatus === "true" && available);
+    } catch (error) {
+      console.log("Error checking biometric support:", error);
+      setIsBiometricAvailable(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -207,6 +260,80 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const enableBiometric = useCallback(async (email: string, password: string): Promise<boolean> => {
+    if (!isBiometricAvailable) return false;
+
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Authenticate to enable biometric login",
+        cancelLabel: "Cancel",
+        disableDeviceFallback: false,
+      });
+
+      if (result.success) {
+        const credentials: BiometricCredentials = { email, password };
+        await SecureStore.setItemAsync(CREDENTIALS_KEY, JSON.stringify(credentials));
+        await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, "true");
+        setIsBiometricEnabled(true);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.log("Error enabling biometric:", error);
+      return false;
+    }
+  }, [isBiometricAvailable]);
+
+  const disableBiometric = useCallback(async (): Promise<void> => {
+    try {
+      await SecureStore.deleteItemAsync(CREDENTIALS_KEY);
+      await SecureStore.deleteItemAsync(BIOMETRIC_ENABLED_KEY);
+      setIsBiometricEnabled(false);
+    } catch (error) {
+      console.log("Error disabling biometric:", error);
+    }
+  }, []);
+
+  const signInWithBiometric = useCallback(async (): Promise<{ error: AuthError | null }> => {
+    if (!isBiometricAvailable || !isBiometricEnabled) {
+      return { error: { message: "Biometric not available or enabled", name: "BiometricError" } as AuthError };
+    }
+
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Sign in to ALEIC",
+        cancelLabel: "Use Password",
+        disableDeviceFallback: false,
+      });
+
+      if (result.success) {
+        const storedCredentials = await SecureStore.getItemAsync(CREDENTIALS_KEY);
+        if (storedCredentials) {
+          const credentials = JSON.parse(storedCredentials) as BiometricCredentials;
+          return await signIn(credentials.email, credentials.password);
+        }
+        return { error: { message: "No stored credentials found", name: "CredentialsError" } as AuthError };
+      }
+      return { error: { message: result.error || "Biometric authentication failed", name: "BiometricError" } as AuthError };
+    } catch (error) {
+      console.log("Error authenticating with biometric:", error);
+      return { error: { message: "Biometric authentication failed", name: "BiometricError" } as AuthError };
+    }
+  }, [isBiometricAvailable, isBiometricEnabled, signIn]);
+
+  const getBiometricTypeName = useCallback((): string => {
+    if (Platform.OS === "ios") {
+      if (biometricType === LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION) {
+        return "Face ID";
+      }
+      return "Touch ID";
+    }
+    if (biometricType === LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION) {
+      return "Face Recognition";
+    }
+    return "Fingerprint";
+  }, [biometricType]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -219,6 +346,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         signUp,
         signOut,
         refreshProfile,
+        isBiometricAvailable,
+        isBiometricEnabled,
+        biometricType,
+        enableBiometric,
+        disableBiometric,
+        signInWithBiometric,
+        getBiometricTypeName,
       }}
     >
       {children}
