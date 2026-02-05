@@ -34,7 +34,8 @@
         }
       },
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "ALEIC uses Face ID to securely log you in to your account."
       }
     },
     "android": {
@@ -45,7 +46,7 @@
       "edgeToEdgeEnabled": true,
       "package": "com.aleic.app",
       "versionCode": 1,
-      "permissions": [],
+      "permissions": ["USE_BIOMETRIC", "USE_FINGERPRINT"],
       "splash": {
         "image": "./assets/images/splash-icon.png",
         "resizeMode": "contain",
