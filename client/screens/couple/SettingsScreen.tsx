@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { StyleSheet, View, ScrollView, Switch, Pressable, Alert } from "react-native";
+import { StyleSheet, View, ScrollView, Switch, Pressable, Alert, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
@@ -20,7 +20,8 @@ interface UserSettings {
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isBiometricAvailable, isBiometricEnabled, enableBiometric, disableBiometric, getBiometricTypeName } = useAuth();
+  const [isBiometricToggling, setIsBiometricToggling] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -96,6 +97,48 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const handleBiometricToggle = async (enabled: boolean) => {
+    if (isBiometricToggling) return;
+    setIsBiometricToggling(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      if (enabled) {
+        Alert.prompt(
+          `Enable ${getBiometricTypeName()}`,
+          "Enter your password to enable biometric login",
+          [
+            { text: "Cancel", style: "cancel", onPress: () => setIsBiometricToggling(false) },
+            {
+              text: "Enable",
+              onPress: async (password) => {
+                if (password && profile?.email) {
+                  const success = await enableBiometric(profile.email, password);
+                  if (success) {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    Alert.alert("Success", `${getBiometricTypeName()} login enabled!`);
+                  } else {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                    Alert.alert("Error", "Failed to enable biometric login. Please try again.");
+                  }
+                }
+                setIsBiometricToggling(false);
+              },
+            },
+          ],
+          "secure-text"
+        );
+      } else {
+        await disableBiometric();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setIsBiometricToggling(false);
+      }
+    } catch (error) {
+      console.log("Error toggling biometric:", error);
+      setIsBiometricToggling(false);
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <GlowBackground />
@@ -166,6 +209,35 @@ export default function SettingsScreen() {
             />
           </View>
         </View>
+
+        {isBiometricAvailable && Platform.OS !== "web" ? (
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Security</ThemedText>
+
+            <View style={styles.settingItem}>
+              <View style={styles.settingInfo}>
+                <Feather
+                  name={getBiometricTypeName().includes("Face") ? "smile" : "smartphone"}
+                  size={20}
+                  color={GlowColors.textPrimary}
+                />
+                <View style={styles.settingText}>
+                  <ThemedText style={styles.settingLabel}>{getBiometricTypeName()} Login</ThemedText>
+                  <ThemedText style={styles.settingDescription}>
+                    Use {getBiometricTypeName()} for quick sign in
+                  </ThemedText>
+                </View>
+              </View>
+              <Switch
+                value={isBiometricEnabled}
+                onValueChange={handleBiometricToggle}
+                disabled={isBiometricToggling}
+                trackColor={{ false: "rgba(255,255,255,0.2)", true: GlowColors.gold }}
+                thumbColor="#fff"
+              />
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Account</ThemedText>
