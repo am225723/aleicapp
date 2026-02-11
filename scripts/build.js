@@ -535,6 +535,16 @@ async function main() {
   console.log("Updating manifests and creating landing page...");
   updateManifests(manifests, timestamp, baseUrl, assetsByHash);
 
+  const serverDistDir = path.join("server_dist");
+  if (!fs.existsSync(serverDistDir)) {
+    fs.mkdirSync(serverDistDir, { recursive: true });
+  }
+  fs.writeFileSync(
+    path.join(serverDistDir, "package.json"),
+    JSON.stringify({ type: "module" }, null, 2)
+  );
+  console.log("Created server_dist/package.json with type: module");
+
   console.log("Build complete! Deploy to:", baseUrl);
 
   if (metroProcess) {
