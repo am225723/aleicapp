@@ -38,6 +38,7 @@ import ParentingPartnersScreen from "@/screens/tools/ParentingPartnersScreen";
 import FinancialToolkitScreen from "@/screens/tools/FinancialToolkitScreen";
 import ValuesVisionScreen from "@/screens/tools/ValuesVisionScreen";
 import TherapistMessagesScreen from "@/screens/therapist/TherapistMessagesScreen";
+import SessionNotesScreen from "@/screens/therapist/SessionNotesScreen";
 import DateNightScreen from "@/screens/couple/DateNightScreen";
 import CoupleProfileScreen from "@/screens/couple/CoupleProfileScreen";
 
@@ -74,6 +75,7 @@ export type RootStackParamList = {
   LoveLanguageQuiz: undefined;
   Calendar: undefined;
   CoupleDetail: { coupleId: string };
+  SessionNotes: { coupleId: string; mode?: string };
   VoiceMemos: undefined;
   SharedGoals: undefined;
   DemonDialogues: undefined;
@@ -163,6 +165,11 @@ return (
             name="TherapistMessages"
             component={TherapistMessagesScreen}
             options={{ headerTitle: "Messages" }}
+          />
+          <Stack.Screen
+            name="SessionNotes"
+            component={SessionNotesScreen}
+            options={{ headerTitle: "Session Notes" }}
           />
         </>
       ) : (
