@@ -1,0 +1,24 @@
+> npx expo export:embed --eager --dev=false --platform=ios
+env: load .env
+env: export EXPO_PUBLIC_DOMAIN
+React Compiler enabled
+Starting Metro Bundler
+| [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+| [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+| [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+| [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+iOS client/index.js ▓▓▓▓░░░░░░░░░░░░ 28.9% (311/579)
+iOS client/index.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 78.4% (1161/1333)
+iOS Bundled 8476ms client/index.js (1609 modules)
+Serializer did not return expected format. The project copy of `expo/metro-config` may be out of date. Error: Unexpected token 'v', "var __BUND"... is not valid JSON
+Error: Serializer did not return expected format. The project copy of `expo/metro-config` may be out of date. Error: Unexpected token 'v', "var __BUND"... is not valid JSON
+Error: Serializer did not return expected format. The project copy of `expo/metro-config` may be out of date. Error: Unexpected token 'v', "var __BUND"... is not valid JSON
+    at MetroBundlerDevServer._bundleDirectAsync (/Users/expo/workingdir/build/node_modules/expo/node_modules/@expo/cli/src/start/server/metro/MetroBundlerDevServer.ts:1753:17)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MetroBundlerDevServer.metroLoadModuleContents (/Users/expo/workingdir/build/node_modules/expo/node_modules/@expo/cli/src/start/server/metro/MetroBundlerDevServer.ts:634:21)
+    at MetroBundlerDevServer.legacySinglePageExportBundleAsync (/Users/expo/workingdir/build/node_modules/expo/node_modules/@expo/cli/src/start/server/metro/MetroBundlerDevServer.ts:950:20)
+    at exportEmbedBundleAndAssetsAsync (/Users/expo/workingdir/build/node_modules/expo/node_modules/@expo/cli/src/export/embed/exportEmbedAsync.ts:195:21)
+    at exportEmbedInternalAsync (/Users/expo/workingdir/build/node_modules/expo/node_modules/@expo/cli/src/export/embed/exportEmbedAsync.ts:127:37)
+    at exportEmbedAsync (/Users/expo/workingdir/build/node_modules/expo/node_modules/@expo/cli/src/export/embed/exportEmbedAsync.ts:107:3)
+[31mError: npx expo export:embed --eager --dev=false --platform=ios exited with non-zero code: 1[39m
+/bin/bash -eo pipefail /var/folders/5_/4knlryn57n39p2c_jw8567z00000gn/T/eas-build/6c716cda-abb4-49ad-8154-b1e931c688a6/steps/7231d142-3953-4340-a160-6f4dc7e91e85/scripts/6841a69c-6031-4a15-93df-c128f014c4e1.sh exited with non-zero code: 1
